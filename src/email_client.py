@@ -3,6 +3,7 @@
 import imaplib
 import email
 from email.header import decode_header
+from email.message import Message
 from datetime import datetime, timedelta
 from typing import Optional
 from dataclasses import dataclass
@@ -68,7 +69,7 @@ class EmailClient:
                 result.append(part)
         return "".join(result)
 
-    def _get_email_body(self, msg: email.message.Message) -> tuple[str, str]:
+    def _get_email_body(self, msg: Message) -> tuple[str, str]:
         """提取邮件正文（纯文本和 HTML）"""
         body_text = ""
         body_html = ""
