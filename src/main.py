@@ -1,7 +1,7 @@
 """AI Newsletter 每日总结 - 主程序"""
 
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -58,8 +58,8 @@ def main():
 
     # 搜索过去 24 小时的邮件
     # 使用 SINCE 搜索昨天到今天的邮件，避免遗漏
-    since_date = datetime.now() - timedelta(hours=24)
-    print(f"\n搜索时间范围: {since_date.strftime('%Y-%m-%d %H:%M')} 至今")
+    since_date = datetime.now(timezone.utc) - timedelta(hours=24)
+    print(f"\n搜索时间范围: {since_date.strftime('%Y-%m-%d %H:%M')} UTC 至今")
 
     # 获取邮件
     print("\n正在获取邮件...")
@@ -80,7 +80,7 @@ def main():
             # 过滤：只保留过去 24 小时内的邮件
             new_emails = [
                 e for e in emails
-                if e.date and e.date >= since_date
+                if e.date and e.date.astimezone(timezone.utc) >= since_date
             ]
 
             if new_emails:
