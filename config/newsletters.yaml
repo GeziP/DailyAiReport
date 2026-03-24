@@ -1,0 +1,47 @@
+# AI Newsletter 配置
+# 在此添加你订阅的 Newsletter，设置 enabled: false 可临时禁用
+
+newsletters:
+  # Lenny's Newsletter - 产品和技术洞察
+  - name: "Lenny's Newsletter"
+    sender: "lenny@lennynewsletter.com"
+    enabled: true
+
+  # Lenny's Podcast - 播客内容
+  - name: "Lenny's Podcast"
+    sender: "podcast@lennynewsletter.com"
+    enabled: true
+
+  # ================================
+  # 更多 Newsletter 模板（取消注释启用）
+  # ================================
+
+  # # TLDR AI - 每日 AI 新闻摘要
+  # - name: "TLDR AI"
+  #   sender: "dan@tldrnewsletter.com"
+  #   enabled: true
+
+  # # The Batch - DeepLearning.ai 出品
+  # - name: "The Batch"
+  #   sender: "newsletter@deeplearning.ai"
+  #   enabled: true
+
+  # # Import AI - Jack Clark 深度 AI 分析
+  # - name: "Import AI"
+  #   sender: "jack@jackclark.net"
+  #   enabled: true
+
+  # # Ben's Bites - AI 产品和趋势
+  # - name: "Ben's Bites"
+  #   sender: "bensbites@substack.com"
+  #   enabled: true
+
+  # # The Sequence - AI/ML 技术通讯
+  # - name: "The Sequence"
+  #   sender: "thesequence@substack.com"
+  #   enabled: true
+
+# 添加新 Newsletter 格式:
+# - name: "Newsletter 名称"
+#   sender: "发件人邮箱地址"
+#   enabled: true  # 或 false 禁用

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# 环境变量
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 输出文件（可选，如果想保留历史记录可以注释掉）
+# output/
+
+# 系统文件
+.DS_Store
+Thumbs.db

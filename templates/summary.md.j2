@@ -1,0 +1,24 @@
+# AI Newsletter 每日总结 - {{ date }}
+
+{% if newsletters %}
+{% for nl in newsletters %}
+## {{ nl.name }}
+
+{{ nl.summary }}
+
+{% if nl.links %}
+### 相关链接
+{% for link in nl.links %}
+- [{{ link.title }}]({{ link.url }})
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+今日未收到任何 Newsletter 邮件。
+{% endif %}
+
+---
+*生成时间: {{ generated_at }}*
+*数据来源: {{ source_count }} 个 Newsletter*
