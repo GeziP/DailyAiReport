@@ -1,7 +1,7 @@
 """AI Newsletter 每日总结 - 主程序"""
 
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -56,7 +56,12 @@ def main():
 
     print(f"已配置 {len(newsletters_config)} 个 Newsletter 源")
 
-    # 获取今天的邮件
+    # 搜索过去 24 小时的邮件
+    # 使用 SINCE 搜索昨天到今天的邮件，避免遗漏
+    since_date = datetime.now() - timedelta(hours=24)
+    print(f"\n搜索时间范围: {since_date.strftime('%Y-%m-%d %H:%M')} 至今")
+
+    # 获取邮件
     print("\n正在获取邮件...")
     all_emails = {}
 
@@ -71,18 +76,24 @@ def main():
             print(f"  检查: {name} ({sender})")
 
             emails = client.fetch_emails_by_sender(sender)
-            if emails:
+
+            # 过滤：只保留过去 24 小时内的邮件
+            new_emails = [
+                e for e in emails
+                if e.date and e.date >= since_date
+            ]
+
+            if new_emails:
                 all_emails[sender] = {
                     "name": name,
-                    "emails": emails
+                    "emails": new_emails
                 }
-                print(f"    找到 {len(emails)} 封邮件")
+                print(f"    找到 {len(new_emails)} 封新邮件")
             else:
-                print(f"    未找到邮件")
+                print(f"    无新邮件")
 
     if not all_emails:
-        print("\n今日未收到任何 Newsletter 邮件")
-        # 仍然生成空的总结文件
+        print("\n没有新邮件需要处理")
         summaries = []
     else:
         # 解析和总结邮件
@@ -94,15 +105,15 @@ def main():
             name = data["name"]
             emails = data["emails"]
 
-            # 合并同一天的邮件内容
+            # 合并邮件内容
             all_content = []
             all_links = []
 
-            for email in emails:
+            for email_msg in emails:
                 # 优先使用 HTML 内容，否则使用纯文本
-                content = email.body_html or email.body_text
+                content = email_msg.body_html or email_msg.body_text
                 if content:
-                    parsed = NewsletterParser.parse(content, email.subject)
+                    parsed = NewsletterParser.parse(content, email_msg.subject)
                     if parsed.main_content:
                         all_content.append(parsed.main_content)
                     if parsed.links:

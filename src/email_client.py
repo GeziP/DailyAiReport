@@ -13,6 +13,7 @@ from .config import Config
 @dataclass
 class EmailMessage:
     """邮件数据类"""
+    message_id: str  # 用于去重
     subject: str
     sender: str
     sender_name: str
@@ -121,14 +122,16 @@ class EmailClient:
     def fetch_emails_by_sender(
         self,
         sender_email: str,
-        date: Optional[datetime] = None
+        since_date: Optional[datetime] = None,
+        before_date: Optional[datetime] = None
     ) -> list[EmailMessage]:
         """
-        获取指定发件人的邮件
+        获取指定发件人在日期范围内的邮件
 
         Args:
             sender_email: 发件人邮箱地址
-            date: 邮件日期，默认今天
+            since_date: 开始日期（含），默认昨天
+            before_date: 结束日期（不含），默认明天
 
         Returns:
             邮件列表
@@ -136,22 +139,26 @@ class EmailClient:
         if not self.connection:
             raise RuntimeError("未连接到 IMAP 服务器")
 
-        if date is None:
-            date = datetime.now()
+        # 默认读取昨天和今天的邮件（避免遗漏）
+        if since_date is None:
+            since_date = datetime.now() - timedelta(days=1)
+        if before_date is None:
+            before_date = datetime.now() + timedelta(days=1)
 
         emails = []
 
         try:
             self.connection.select("INBOX")
 
-            # 构建搜索条件：指定日期 + 发件人
             # IMAP 日期格式: 24-Mar-2026
-            date_str = date.strftime("%d-%b-%Y")
+            since_str = since_date.strftime("%d-%b-%Y")
+            before_str = before_date.strftime("%d-%b-%Y")
 
-            # 搜索当天的邮件
+            # 使用 SINCE 和 BEFORE 搜索日期范围
             status, messages = self.connection.search(
                 None,
-                f'ON "{date_str}"'
+                f'SINCE "{since_str}"',
+                f'BEFORE "{before_str}"'
             )
 
             if status != "OK":
@@ -175,21 +182,24 @@ class EmailClient:
                 if sender_email.lower() not in sender_addr.lower():
                     continue
 
+                # 获取 Message-ID 用于去重
+                message_id = msg.get("Message-ID", "")
+
                 # 解析主题
                 subject = self._decode_header_value(msg.get("Subject", ""))
 
                 # 解析日期
                 date_header = msg.get("Date", "")
                 try:
-                    # 解析邮件日期
                     parsed_date = email.utils.parsedate_to_datetime(date_header)
                 except:
-                    parsed_date = date
+                    parsed_date = datetime.now()
 
                 # 获取正文
                 body_text, body_html = self._get_email_body(msg)
 
                 emails.append(EmailMessage(
+                    message_id=message_id,
                     subject=subject,
                     sender=sender_addr,
                     sender_name=sender_name,
@@ -206,14 +216,16 @@ class EmailClient:
     def fetch_emails_by_senders(
         self,
         sender_emails: list[str],
-        date: Optional[datetime] = None
+        since_date: Optional[datetime] = None,
+        before_date: Optional[datetime] = None
     ) -> dict[str, list[EmailMessage]]:
         """
-        获取多个发件人的邮件
+        获取多个发件人在日期范围内的邮件
 
         Args:
             sender_emails: 发件人邮箱列表
-            date: 邮件日期，默认今天
+            since_date: 开始日期（含），默认昨天
+            before_date: 结束日期（不含），默认明天
 
         Returns:
             {发件人邮箱: 邮件列表}
@@ -221,7 +233,7 @@ class EmailClient:
         result = {}
 
         for sender in sender_emails:
-            emails = self.fetch_emails_by_sender(sender, date)
+            emails = self.fetch_emails_by_sender(sender, since_date, before_date)
             if emails:
                 result[sender] = emails
 
@@ -229,7 +241,7 @@ class EmailClient:
 
     def fetch_today_emails(self) -> dict[str, list[EmailMessage]]:
         """
-        获取今天所有已配置 Newsletter 的邮件
+        获取昨天和今天所有已配置 Newsletter 的邮件
 
         Returns:
             {发件人邮箱: 邮件列表}
