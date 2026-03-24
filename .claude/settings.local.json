@@ -3,7 +3,26 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(gh workflow:*)",
+      "Bash(curl -s \"https://api.github.com/repos/GeziP/DailyAiPodcast/actions/runs?per_page=3\")",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); runs=data.get\\(''''runs'''',[]\\); [print\\(f\"\"{r[''''id'''']} | {r[''''status'''']} | {r[''''conclusion'''']} | {r[''''created_at'''']}\"\"\\) for r in runs[:3]]\")",
+      "WebFetch(domain:github.com)",
+      "Bash(gh run:*)",
+      "Bash(where gh:*)",
+      "Bash(cmd.exe /c \"gh run list --repo GeziP/DailyAiPodcast --limit 3\")",
+      "Bash(powershell -Command \"gh run list --repo GeziP/DailyAiPodcast --limit 3\")",
+      "Bash(gh browse:*)",
+      "Bash(gh api:*)",
+      "Bash(GH_DEBUG=1 gh api repos/GeziP/DailyAiPodcast/actions/runs/23481231406)",
+      "Bash(ping:*)",
+      "Bash(gh auth:*)",
+      "Bash(env)",
+      "Bash(gh config:*)",
+      "Bash(GH_POXY_HOST=\"\" gh api --paginate repos/GeziP/DailyAiPodcast/actions/runs --jq '.workflow_runs[0] | {id: .id, status: .status, conclusion: .conclusion, name: .name}')",
+      "Bash(git fetch:*)",
+      "Bash(unzip -o /tmp/artifact.zip -d /tmp/artifact)",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -1,7 +1,7 @@
-"""阿里云通义千问 AI 总结模块"""
+"""阿里云通义千问 AI 总结模块（Anthropic 兼容接口）"""
 
 from typing import Optional
-from dashscope import Generation
+from openai import OpenAI
 
 from .config import Config
 from .newsletter_parser import ParsedContent
@@ -31,11 +31,14 @@ SYSTEM_PROMPT = """你是一个专业的 AI 新闻和产品通讯总结助手。
 
 
 class AISummarizer:
-    """阿里云通义千问 AI 总结器"""
+    """阿里云通义千问 AI 总结器（Anthropic 兼容接口）"""
 
     def __init__(self):
-        self.api_key = Config.DASHSCOPE_API_KEY
-        self.model = "qwen-plus"  # 使用 qwen-plus 模型，性价比高
+        self.client = OpenAI(
+            api_key=Config.ANTHROPIC_API_KEY,
+            base_url=Config.ANTHROPIC_BASE_URL
+        )
+        self.model = Config.ANTHROPIC_MODEL
 
     def summarize(
         self,
@@ -67,23 +70,17 @@ class AISummarizer:
 请用中文进行总结，保持简洁但信息完整。"""
 
         try:
-            response = Generation.call(
-                api_key=self.api_key,
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
                 max_tokens=max_tokens,
-                temperature=0.7,
-                result_format="message"
+                temperature=0.7
             )
 
-            if response.status_code == 200:
-                return response.output.choices[0].message.content
-            else:
-                print(f"AI 总结失败: {response.code} - {response.message}")
-                return None
+            return response.choices[0].message.content
 
         except Exception as e:
             print(f"AI 总结失败: {e}")
