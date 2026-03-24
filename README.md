@@ -5,7 +5,7 @@
 ## 功能特点
 
 - 📧 支持 QQ 邮箱 IMAP 协议读取邮件
-- 🤖 使用智谱 GLM-4 进行内容总结
+- 🤖 使用阿里云通义千问进行内容总结
 - 📅 按日期存放 Markdown 输出文件
 - ⏰ GitHub Actions 定时自动运行（北京时间早上 7:00）
 - ⚙️ YAML 配置文件，方便添加新的 Newsletter 源
@@ -40,8 +40,8 @@ cp .env.example .env
 QQ_EMAIL=your_email@qq.com
 QQ_EMAIL_AUTH_CODE=your_authorization_code
 
-# 智谱 GLM API 配置
-ZHIPU_API_KEY=your_api_key
+# 阿里云通义千问 API 配置
+DASHSCOPE_API_KEY=your_api_key
 ```
 
 #### 获取 QQ 邮箱授权码
@@ -51,11 +51,11 @@ ZHIPU_API_KEY=your_api_key
 3. 开启 IMAP/SMTP 服务
 4. 点击"生成授权码"，发送短信验证后获得
 
-#### 获取智谱 GLM API Key
+#### 获取阿里云通义千问 API Key
 
-1. 注册 [智谱开放平台](https://open.bigmodel.cn)
-2. 进入控制台 → API Keys
-3. 创建新的 API Key
+1. 登录 [阿里云百炼平台](https://bailian.console.aliyun.com)
+2. 开通 DashScope 服务
+3. 进入 API-KEY 管理创建 API Key
 
 ### 4. 配置 Newsletter 源
 
@@ -102,7 +102,7 @@ Settings → Secrets and variables → Actions → New repository secret
 |------------|------|
 | `QQ_EMAIL` | QQ 邮箱地址 |
 | `QQ_EMAIL_AUTH_CODE` | QQ 邮箱授权码 |
-| `ZHIPU_API_KEY` | 智谱 GLM API Key |
+| `DASHSCOPE_API_KEY` | 阿里云通义千问 API Key |
 
 ### 3. 手动触发测试
 
@@ -121,7 +121,7 @@ DailyAiPodcast/
 │   ├── config.py             # 配置管理
 │   ├── email_client.py       # IMAP 邮件客户端
 │   ├── newsletter_parser.py  # 邮件内容解析
-│   ├── ai_summarizer.py      # 智谱 GLM 总结
+│   ├── ai_summarizer.py      # 阿里云通义千问总结
 │   └── main.py               # 主程序
 ├── config/
 │   └── newsletters.yaml      # Newsletter 配置
@@ -150,7 +150,7 @@ newsletters:
 
 1. 确保 Gmail 已设置自动转发到 QQ 邮箱
 2. QQ 邮箱授权码不是 QQ 密码
-3. 智谱 GLM API 有免费额度，每日使用量需注意
+3. 阿里云通义千问有免费额度，每日使用量需注意
 4. GitHub Actions 定时任务可能有几分钟延迟
 
 ## License

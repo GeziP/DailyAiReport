@@ -18,8 +18,8 @@ class Config:
     QQ_EMAIL = os.getenv("QQ_EMAIL", "")
     QQ_EMAIL_AUTH_CODE = os.getenv("QQ_EMAIL_AUTH_CODE", "")
 
-    # 智谱 GLM API 配置
-    ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY", "")
+    # 阿里云通义千问 API 配置
+    DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
     # IMAP 服务器配置
     IMAP_SERVER = "imap.qq.com"
@@ -37,7 +37,7 @@ class Config:
     @classmethod
     def validate(cls) -> bool:
         """验证必要配置是否存在"""
-        required = ["QQ_EMAIL", "QQ_EMAIL_AUTH_CODE", "ZHIPU_API_KEY"]
+        required = ["QQ_EMAIL", "QQ_EMAIL_AUTH_CODE", "DASHSCOPE_API_KEY"]
         missing = [key for key in required if not getattr(cls, key)]
         if missing:
             raise ValueError(f"缺少必要配置: {', '.join(missing)}")

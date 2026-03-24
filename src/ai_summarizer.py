@@ -1,7 +1,7 @@
-"""智谱 GLM AI 总结模块"""
+"""阿里云通义千问 AI 总结模块"""
 
 from typing import Optional
-from zhipuai import ZhipuAI
+from dashscope import Generation
 
 from .config import Config
 from .newsletter_parser import ParsedContent
@@ -31,11 +31,11 @@ SYSTEM_PROMPT = """你是一个专业的 AI 新闻和产品通讯总结助手。
 
 
 class AISummarizer:
-    """智谱 GLM AI 总结器"""
+    """阿里云通义千问 AI 总结器"""
 
     def __init__(self):
-        self.client = ZhipuAI(api_key=Config.ZHIPU_API_KEY)
-        self.model = "glm-4"  # 使用 GLM-4 模型
+        self.api_key = Config.DASHSCOPE_API_KEY
+        self.model = "qwen-plus"  # 使用 qwen-plus 模型，性价比高
 
     def summarize(
         self,
@@ -67,17 +67,23 @@ class AISummarizer:
 请用中文进行总结，保持简洁但信息完整。"""
 
         try:
-            response = self.client.chat.completions.create(
+            response = Generation.call(
+                api_key=self.api_key,
                 model=self.model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
                 max_tokens=max_tokens,
-                temperature=0.7
+                temperature=0.7,
+                result_format="message"
             )
 
-            return response.choices[0].message.content
+            if response.status_code == 200:
+                return response.output.choices[0].message.content
+            else:
+                print(f"AI 总结失败: {response.code} - {response.message}")
+                return None
 
         except Exception as e:
             print(f"AI 总结失败: {e}")

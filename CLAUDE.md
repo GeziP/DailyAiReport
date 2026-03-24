@@ -21,10 +21,10 @@ cp .env.example .env
 
 ```
 src/
-├── config.py           # 配置管理，从环境变量读取 QQ_EMAIL, QQ_EMAIL_AUTH_CODE, ZHIPU_API_KEY
+├── config.py           # 配置管理，从环境变量读取 QQ_EMAIL, QQ_EMAIL_AUTH_CODE, DASHSCOPE_API_KEY
 ├── email_client.py     # IMAP 邮件客户端，连接 QQ 邮箱获取邮件
 ├── newsletter_parser.py# HTML 解析，提取正文和链接
-├── ai_summarizer.py    # 智谱 GLM-4 API 封装
+├── ai_summarizer.py    # 阿里云通义千问 API 封装
 └── main.py             # 主程序入口，串联所有模块
 ```
 
@@ -37,7 +37,7 @@ src/
 
 定时任务：`.github/workflows/daily-summary.yml`
 - UTC 23:00 = 北京时间早 7:00
-- 需要配置 Secrets: `QQ_EMAIL`, `QQ_EMAIL_AUTH_CODE`, `ZHIPU_API_KEY`
+- 需要配置 Secrets: `QQ_EMAIL`, `QQ_EMAIL_AUTH_CODE`, `DASHSCOPE_API_KEY`
 - 支持手动触发：`workflow_dispatch`
 
 ## 扩展 Newsletter
