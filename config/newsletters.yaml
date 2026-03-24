@@ -4,12 +4,22 @@
 newsletters:
   # Lenny's Newsletter - 产品和技术洞察
   - name: "Lenny's Newsletter"
-    sender: "lenny@lennynewsletter.com"
+    sender: "lenny+how-i-ai@substack.com"
     enabled: true
 
-  # Lenny's Podcast - 播客内容
-  - name: "Lenny's Podcast"
-    sender: "podcast@lennynewsletter.com"
+  # Every - 产品设计和工具
+  - name: "Every"
+    sender: "hello@every.to"
+    enabled: true
+
+  # The AI Break - AI 新闻和趋势
+  - name: "The AI Break"
+    sender: "theaibreak@substack.com"
+    enabled: true
+
+  # AI Valley - AI 行业动态
+  - name: "AI Valley"
+    sender: "aivalley@mail.beehiiv.com"
     enabled: true
 
   # ================================
@@ -34,11 +44,6 @@ newsletters:
   # # Ben's Bites - AI 产品和趋势
   # - name: "Ben's Bites"
   #   sender: "bensbites@substack.com"
-  #   enabled: true
-
-  # # The Sequence - AI/ML 技术通讯
-  # - name: "The Sequence"
-  #   sender: "thesequence@substack.com"
   #   enabled: true
 
 # 添加新 Newsletter 格式:
