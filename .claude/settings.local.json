@@ -22,7 +22,9 @@
       "Bash(GH_POXY_HOST=\"\" gh api --paginate repos/GeziP/DailyAiPodcast/actions/runs --jq '.workflow_runs[0] | {id: .id, status: .status, conclusion: .conclusion, name: .name}')",
       "Bash(git fetch:*)",
       "Bash(unzip -o /tmp/artifact.zip -d /tmp/artifact)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(git rm:*)",
+      "Bash(gh secret:*)"
     ]
   }
 }

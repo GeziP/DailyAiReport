@@ -1,6 +1,7 @@
 """阿里云通义千问 AI 总结模块（Anthropic 兼容接口）"""
 
 from typing import Optional
+import httpx
 from openai import OpenAI
 
 from .config import Config
@@ -34,11 +35,17 @@ class AISummarizer:
     """阿里云通义千问 AI 总结器（Anthropic 兼容接口）"""
 
     def __init__(self):
+        # 配置 HTTP 客户端，增加超时时间
+        http_client = httpx.Client(
+            timeout=httpx.Timeout(60.0, connect=30.0)
+        )
         self.client = OpenAI(
             api_key=Config.ANTHROPIC_API_KEY,
-            base_url=Config.ANTHROPIC_BASE_URL
+            base_url=Config.ANTHROPIC_BASE_URL,
+            http_client=http_client
         )
         self.model = Config.ANTHROPIC_MODEL
+        print(f"AI 配置: model={self.model}, base_url={Config.ANTHROPIC_BASE_URL}")
 
     def summarize(
         self,
@@ -83,7 +90,10 @@ class AISummarizer:
             return response.choices[0].message.content
 
         except Exception as e:
-            print(f"AI 总结失败: {e}")
+            print(f"AI 总结失败: {type(e).__name__}: {e}")
+            # 打印更多调试信息
+            import traceback
+            traceback.print_exc()
             return None
 
     def summarize_parsed_content(
