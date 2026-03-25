@@ -12,6 +12,7 @@ from .email_client import EmailClient
 from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
+from .image_generator import ImageGenerator
 
 
 def load_newsletters_config() -> list[dict]:
@@ -162,21 +163,55 @@ def main():
     print("\n正在生成多平台文章...")
     article_gen = ArticleGenerator()
 
+    # 提取标题用于图片生成
+    article_title = f"{date_str} AI Newsletter 每日资讯"
+
     # 生成小红书文章
     xhs_content = article_gen.generate_xiaohongshu(summaries, date_str)
+    xhs_file = None
     if xhs_content:
         xhs_file = Config.OUTPUT_DIR / f"{date_str}-xiaohongshu.md"
+        # 从内容中提取标题
+        for line in xhs_content.split('\n'):
+            if line.startswith('## ') and '标题' in line:
+                next_line = xhs_content.split('\n')[xhs_content.split('\n').index(line) + 1]
+                if next_line and not next_line.startswith('#'):
+                    article_title = next_line.strip()
+                break
         with open(xhs_file, "w", encoding="utf-8") as f:
             f.write(xhs_content)
         print(f"  小红书文章: {xhs_file}")
 
     # 生成微信公众号文章
     wechat_content = article_gen.generate_wechat(summaries, date_str)
+    wechat_file = None
     if wechat_content:
         wechat_file = Config.OUTPUT_DIR / f"{date_str}-wechat.md"
         with open(wechat_file, "w", encoding="utf-8") as f:
             f.write(wechat_content)
         print(f"  微信公众号文章: {wechat_file}")
+
+    # 生成封面图
+    print("\n正在生成封面图...")
+    image_gen = ImageGenerator()
+
+    # 生成小红书封面图
+    xhs_cover = image_gen.generate_xiaohongshu_cover(article_title, date_str)
+    if xhs_cover and xhs_file:
+        # 在 Markdown 开头嵌入图片引用
+        with open(xhs_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        with open(xhs_file, "w", encoding="utf-8") as f:
+            f.write(f"![小红书封面](./{xhs_cover.name})\n\n{content}")
+
+    # 生成微信公众号封面图
+    wechat_cover = image_gen.generate_wechat_cover(article_title, date_str)
+    if wechat_cover and wechat_file:
+        # 在 Markdown 开头嵌入图片引用
+        with open(wechat_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        with open(wechat_file, "w", encoding="utf-8") as f:
+            f.write(f"![微信公众号封面](./{wechat_cover.name})\n\n{content}")
 
     print("=" * 50)
 

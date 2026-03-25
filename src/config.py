@@ -29,6 +29,11 @@ class Config:
     WECHAT_APP_ID = os.getenv("WECHAT_APP_ID", "")
     WECHAT_APP_SECRET = os.getenv("WECHAT_APP_SECRET", "")
 
+    # 图片生成配置（可选，用于生成封面图）
+    IMAGE_API_KEY = os.getenv("IMAGE_API_KEY", "")
+    IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL", "")
+    IMAGE_MODEL = os.getenv("IMAGE_MODEL", "dall-e-3")
+
     # 向后兼容：旧变量名作为 fallback
     @classmethod
     def _apply_backward_compatibility(cls):
