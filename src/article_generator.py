@@ -61,7 +61,7 @@ class ArticleGenerator:
 
     def __init__(self):
         http_client = httpx.Client(
-            timeout=httpx.Timeout(60.0, connect=30.0)
+            timeout=httpx.Timeout(120.0, connect=30.0)  # 增加超时到 2 分钟
         )
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
@@ -88,20 +88,25 @@ class ArticleGenerator:
 
 请按照要求改写，保持核心信息完整。"""
 
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=3000,
-                temperature=0.8
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"{platform}文章生成失败: {type(e).__name__}: {e}")
-            return None
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=3000,
+                    temperature=0.8
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"{platform}文章生成失败，重试中... ({attempt + 1}/{max_retries})")
+                    continue
+                print(f"{platform}文章生成失败: {type(e).__name__}: {e}")
+                return None
 
     def generate_xiaohongshu(
         self,
