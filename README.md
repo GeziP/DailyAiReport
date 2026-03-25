@@ -1,25 +1,28 @@
 # AI Newsletter 每日总结
 
-自动从邮箱获取订阅的 AI Newsletter 邮件，使用 AI 进行智能总结，生成 Markdown 格式的每日摘要，并自动适配小红书和微信公众号的文章风格。
+自动从邮箱获取订阅的 AI Newsletter 邮件，使用 AI 进行智能总结，生成 Markdown 格式的每日摘要，并自动适配小红书和微信公众号的文章风格，支持 AI 生成封面配图。
 
 ## 功能特点
 
 - 📧 支持任意 IMAP 邮箱（QQ、Gmail、Outlook 等）
 - 🤖 支持任意 OpenAI 兼容 API（OpenAI、阿里云通义千问、智谱 GLM、DeepSeek 等）
 - 📝 自动生成多平台适配文章（原始总结 + 小红书 + 微信公众号）
+- 🖼️ 支持 AI 生成封面配图（小红书 + 微信公众号）
 - 📅 按日期存放 Markdown 输出文件
 - ⏰ GitHub Actions 定时自动运行（北京时间早上 7:00）
 - ⚙️ YAML 配置文件，方便添加新的 Newsletter 源
 
 ## 输出文件
 
-每天生成 3 个文件：
+每天最多生成 5 个文件：
 
 | 文件 | 说明 |
 |------|------|
 | `YYYY-MM-DD.md` | 原始 Newsletter 总结 |
 | `YYYY-MM-DD-xiaohongshu.md` | 小红书风格文章（emoji 丰富、互动引导） |
+| `YYYY-MM-DD-xiaohongshu-cover.png` | 小红书封面图（需配置图片 API） |
 | `YYYY-MM-DD-wechat.md` | 微信公众号风格文章（专业排版、结构完整） |
+| `YYYY-MM-DD-wechat-cover.png` | 微信公众号封面图（需配置图片 API） |
 
 ## 快速开始
 
@@ -57,6 +60,11 @@ IMAP_PASSWORD=your_password_or_auth_code
 AI_API_KEY=your_api_key
 AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
+
+# 图片生成配置（可选，用于生成封面图）
+IMAGE_API_KEY=your_image_api_key
+IMAGE_BASE_URL=https://api.openai.com/v1
+IMAGE_MODEL=dall-e-3
 ```
 
 #### 常用邮箱 IMAP 配置
@@ -118,17 +126,25 @@ git push origin main
 
 Settings → Secrets and variables → Actions → New repository secret
 
-添加以下 Secrets：
+#### 必填 Secrets
 
-| Secret 名称 | 说明 | 必填 |
-|------------|------|------|
-| `IMAP_USER` | 邮箱地址 | ✅ |
-| `IMAP_PASSWORD` | 邮箱密码或授权码 | ✅ |
-| `AI_API_KEY` | AI API 密钥 | ✅ |
-| `IMAP_SERVER` | IMAP 服务器地址 | 可选（默认 `imap.qq.com`） |
-| `IMAP_PORT` | IMAP 端口 | 可选（默认 `993`） |
-| `AI_BASE_URL` | API 端点 | 可选（默认 OpenAI） |
-| `AI_MODEL` | 模型名称 | 可选（默认 `gpt-4o-mini`） |
+| Secret 名称 | 说明 |
+|------------|------|
+| `IMAP_USER` | 邮箱地址 |
+| `IMAP_PASSWORD` | 邮箱密码或授权码 |
+| `AI_API_KEY` | AI API 密钥 |
+
+#### 可选 Secrets
+
+| Secret 名称 | 说明 | 默认值 |
+|------------|------|--------|
+| `IMAP_SERVER` | IMAP 服务器地址 | `imap.qq.com` |
+| `IMAP_PORT` | IMAP 端口 | `993` |
+| `AI_BASE_URL` | API 端点 | `https://api.openai.com/v1` |
+| `AI_MODEL` | 模型名称 | `gpt-4o-mini` |
+| `IMAGE_API_KEY` | 图片生成 API 密钥 | 使用 `AI_API_KEY` |
+| `IMAGE_BASE_URL` | 图片生成 API 端点 | 使用 `AI_BASE_URL` |
+| `IMAGE_MODEL` | 图片模型 | `dall-e-3` |
 
 ### 3. 手动触发测试
 
@@ -136,7 +152,7 @@ Actions → Daily AI Newsletter Summary → Run workflow
 
 ### 4. 查看结果
 
-运行完成后，在 Actions 页面下载 Artifact 查看生成的 Markdown 文件。
+运行完成后，在 Actions 页面下载 Artifact 查看生成的文件。
 
 ## 目录结构
 
@@ -149,6 +165,7 @@ DailyAiPodcast/
 │   ├── newsletter_parser.py  # 邮件内容解析
 │   ├── ai_summarizer.py      # AI 总结（OpenAI 兼容接口）
 │   ├── article_generator.py  # 多平台文章生成
+│   ├── image_generator.py    # 封面图生成
 │   └── main.py               # 主程序
 ├── config/
 │   └── newsletters.yaml      # Newsletter 配置
@@ -179,6 +196,7 @@ newsletters:
 2. AI API 有调用成本，注意使用量
 3. GitHub Actions 定时任务可能有几分钟延迟
 4. 小红书和微信文章生成需要额外的 AI API 调用
+5. 封面配图需要配置支持图片生成的 API（如 OpenAI DALL-E），阿里云通义千问暂不支持
 
 ## License
 
