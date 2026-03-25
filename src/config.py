@@ -25,6 +25,10 @@ class Config:
     AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"
     AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini") or "gpt-4o-mini"
 
+    # 微信公众号配置（可选，用于自动发布草稿）
+    WECHAT_APP_ID = os.getenv("WECHAT_APP_ID", "")
+    WECHAT_APP_SECRET = os.getenv("WECHAT_APP_SECRET", "")
+
     # 向后兼容：旧变量名作为 fallback
     @classmethod
     def _apply_backward_compatibility(cls):

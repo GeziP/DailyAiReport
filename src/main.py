@@ -11,6 +11,7 @@ from .config import Config
 from .email_client import EmailClient
 from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
+from .article_generator import ArticleGenerator
 
 
 def load_newsletters_config() -> list[dict]:
@@ -156,6 +157,27 @@ def main():
         f.write(output_content)
 
     print(f"\n完成! 输出文件: {output_file}")
+
+    # 生成多平台文章
+    print("\n正在生成多平台文章...")
+    article_gen = ArticleGenerator()
+
+    # 生成小红书文章
+    xhs_content = article_gen.generate_xiaohongshu(summaries, date_str)
+    if xhs_content:
+        xhs_file = Config.OUTPUT_DIR / f"{date_str}-xiaohongshu.md"
+        with open(xhs_file, "w", encoding="utf-8") as f:
+            f.write(xhs_content)
+        print(f"  小红书文章: {xhs_file}")
+
+    # 生成微信公众号文章
+    wechat_content = article_gen.generate_wechat(summaries, date_str)
+    if wechat_content:
+        wechat_file = Config.OUTPUT_DIR / f"{date_str}-wechat.md"
+        with open(wechat_file, "w", encoding="utf-8") as f:
+            f.write(wechat_content)
+        print(f"  微信公众号文章: {wechat_file}")
+
     print("=" * 50)
 
     return 0
