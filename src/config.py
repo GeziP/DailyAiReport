@@ -20,7 +20,7 @@ class Config:
 
     # 阿里云通义千问 Anthropic 兼容 API 配置
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_BASE_URL = os.getenv("ANTHROPIC_BASE_URL", "https://coding.dashscope.aliyuncs.com/apps/anthropic/v1")
+    ANTHROPIC_BASE_URL = os.getenv("ANTHROPIC_BASE_URL", "https://coding.dashscope.aliyuncs.com/v1")
     ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "qwen3.5-plus")
 
     # IMAP 服务器配置
