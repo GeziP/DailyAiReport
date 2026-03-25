@@ -15,15 +15,15 @@ class Config:
     BASE_DIR = Path(__file__).parent.parent
 
     # 通用邮箱配置（支持任意 IMAP 邮箱）
-    IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.qq.com")
-    IMAP_PORT = int(os.getenv("IMAP_PORT", "993"))
+    IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.qq.com") or "imap.qq.com"
+    IMAP_PORT = int(os.getenv("IMAP_PORT", "993") or "993")
     IMAP_USER = os.getenv("IMAP_USER", "")  # 邮箱地址
     IMAP_PASSWORD = os.getenv("IMAP_PASSWORD", "")  # 密码或授权码
 
     # 通用 AI API 配置（OpenAI 兼容接口）
     AI_API_KEY = os.getenv("AI_API_KEY", "")
-    AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openai.com/v1")
-    AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
+    AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"
+    AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini") or "gpt-4o-mini"
 
     # 向后兼容：旧变量名作为 fallback
     @classmethod
