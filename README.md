@@ -1,11 +1,11 @@
 # AI Newsletter 每日总结
 
-自动从 QQ 邮箱获取订阅的 AI Newsletter 邮件，使用智谱 GLM 进行智能总结，生成 Markdown 格式的每日摘要。
+自动从邮箱获取订阅的 AI Newsletter 邮件，使用 AI 进行智能总结，生成 Markdown 格式的每日摘要。
 
 ## 功能特点
 
-- 📧 支持 QQ 邮箱 IMAP 协议读取邮件
-- 🤖 使用阿里云通义千问进行内容总结
+- 📧 支持任意 IMAP 邮箱（QQ、Gmail、Outlook 等）
+- 🤖 支持任意 OpenAI 兼容 API（OpenAI、阿里云通义千问、智谱 GLM、DeepSeek 等）
 - 📅 按日期存放 Markdown 输出文件
 - ⏰ GitHub Actions 定时自动运行（北京时间早上 7:00）
 - ⚙️ YAML 配置文件，方便添加新的 Newsletter 源
@@ -36,26 +36,37 @@ cp .env.example .env
 编辑 `.env` 文件：
 
 ```env
-# QQ 邮箱配置
-QQ_EMAIL=your_email@qq.com
-QQ_EMAIL_AUTH_CODE=your_authorization_code
+# 邮箱配置（支持任意 IMAP 邮箱）
+IMAP_SERVER=imap.qq.com
+IMAP_PORT=993
+IMAP_USER=your_email@example.com
+IMAP_PASSWORD=your_password_or_auth_code
 
-# 阿里云通义千问 API 配置
-DASHSCOPE_API_KEY=your_api_key
+# AI API 配置（支持 OpenAI 兼容接口）
+AI_API_KEY=your_api_key
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
 ```
 
-#### 获取 QQ 邮箱授权码
+#### 常用邮箱 IMAP 配置
 
-1. 登录 [QQ 邮箱网页版](https://mail.qq.com)
-2. 设置 → 账户 → POP3/IMAP/SMTP 服务
-3. 开启 IMAP/SMTP 服务
-4. 点击"生成授权码"，发送短信验证后获得
+| 邮箱 | IMAP 服务器 | 端口 |
+|------|-------------|------|
+| QQ 邮箱 | `imap.qq.com` | 993 |
+| Gmail | `imap.gmail.com` | 993 |
+| Outlook | `outlook.office365.com` | 993 |
+| 163 邮箱 | `imap.163.com` | 993 |
 
-#### 获取阿里云通义千问 API Key
+> **注意**：QQ 邮箱、163 邮箱需要使用授权码而非密码登录。
 
-1. 登录 [阿里云百炼平台](https://bailian.console.aliyun.com)
-2. 开通 DashScope 服务
-3. 进入 API-KEY 管理创建 API Key
+#### 常用 AI API 配置
+
+| 平台 | Base URL | 模型示例 |
+|------|----------|----------|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini`, `gpt-4o` |
+| 阿里云通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus`, `qwen-turbo` |
+| 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash`, `glm-4` |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
 
 ### 4. 配置 Newsletter 源
 
@@ -98,11 +109,15 @@ Settings → Secrets and variables → Actions → New repository secret
 
 添加以下 Secrets：
 
-| Secret 名称 | 说明 |
-|------------|------|
-| `QQ_EMAIL` | QQ 邮箱地址 |
-| `QQ_EMAIL_AUTH_CODE` | QQ 邮箱授权码 |
-| `DASHSCOPE_API_KEY` | 阿里云通义千问 API Key |
+| Secret 名称 | 说明 | 必填 |
+|------------|------|------|
+| `IMAP_USER` | 邮箱地址 | ✅ |
+| `IMAP_PASSWORD` | 邮箱密码或授权码 | ✅ |
+| `AI_API_KEY` | AI API 密钥 | ✅ |
+| `IMAP_SERVER` | IMAP 服务器地址 | 可选（默认 `imap.qq.com`） |
+| `IMAP_PORT` | IMAP 端口 | 可选（默认 `993`） |
+| `AI_BASE_URL` | API 端点 | 可选（默认 OpenAI） |
+| `AI_MODEL` | 模型名称 | 可选（默认 `gpt-4o-mini`） |
 
 ### 3. 手动触发测试
 
@@ -121,7 +136,7 @@ DailyAiPodcast/
 │   ├── config.py             # 配置管理
 │   ├── email_client.py       # IMAP 邮件客户端
 │   ├── newsletter_parser.py  # 邮件内容解析
-│   ├── ai_summarizer.py      # 阿里云通义千问总结
+│   ├── ai_summarizer.py      # AI 总结（OpenAI 兼容接口）
 │   └── main.py               # 主程序
 ├── config/
 │   └── newsletters.yaml      # Newsletter 配置
@@ -148,10 +163,9 @@ newsletters:
 
 ## 注意事项
 
-1. 确保 Gmail 已设置自动转发到 QQ 邮箱
-2. QQ 邮箱授权码不是 QQ 密码
-3. 阿里云通义千问有免费额度，每日使用量需注意
-4. GitHub Actions 定时任务可能有几分钟延迟
+1. 部分邮箱（QQ、163 等）需要使用授权码而非密码
+2. AI API 有调用成本，注意使用量
+3. GitHub Actions 定时任务可能有几分钟延迟
 
 ## License
 
