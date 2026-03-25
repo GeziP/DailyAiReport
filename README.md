@@ -1,14 +1,25 @@
 # AI Newsletter 每日总结
 
-自动从邮箱获取订阅的 AI Newsletter 邮件，使用 AI 进行智能总结，生成 Markdown 格式的每日摘要。
+自动从邮箱获取订阅的 AI Newsletter 邮件，使用 AI 进行智能总结，生成 Markdown 格式的每日摘要，并自动适配小红书和微信公众号的文章风格。
 
 ## 功能特点
 
 - 📧 支持任意 IMAP 邮箱（QQ、Gmail、Outlook 等）
 - 🤖 支持任意 OpenAI 兼容 API（OpenAI、阿里云通义千问、智谱 GLM、DeepSeek 等）
+- 📝 自动生成多平台适配文章（原始总结 + 小红书 + 微信公众号）
 - 📅 按日期存放 Markdown 输出文件
 - ⏰ GitHub Actions 定时自动运行（北京时间早上 7:00）
 - ⚙️ YAML 配置文件，方便添加新的 Newsletter 源
+
+## 输出文件
+
+每天生成 3 个文件：
+
+| 文件 | 说明 |
+|------|------|
+| `YYYY-MM-DD.md` | 原始 Newsletter 总结 |
+| `YYYY-MM-DD-xiaohongshu.md` | 小红书风格文章（emoji 丰富、互动引导） |
+| `YYYY-MM-DD-wechat.md` | 微信公众号风格文章（专业排版、结构完整） |
 
 ## 快速开始
 
@@ -137,6 +148,7 @@ DailyAiPodcast/
 │   ├── email_client.py       # IMAP 邮件客户端
 │   ├── newsletter_parser.py  # 邮件内容解析
 │   ├── ai_summarizer.py      # AI 总结（OpenAI 兼容接口）
+│   ├── article_generator.py  # 多平台文章生成
 │   └── main.py               # 主程序
 ├── config/
 │   └── newsletters.yaml      # Newsletter 配置
@@ -166,6 +178,7 @@ newsletters:
 1. 部分邮箱（QQ、163 等）需要使用授权码而非密码
 2. AI API 有调用成本，注意使用量
 3. GitHub Actions 定时任务可能有几分钟延迟
+4. 小红书和微信文章生成需要额外的 AI API 调用
 
 ## License
 
