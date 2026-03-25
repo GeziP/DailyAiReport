@@ -189,3 +189,57 @@ class ArticleGenerator:
                     parts.append(f"- {link['title']}: {link['url']}\n")
 
         return "".join(parts)
+
+    def generate_xiaohongshu_from_content(
+        self,
+        content: str,
+        title_prefix: str = "AI 动态"
+    ) -> Optional[str]:
+        """
+        从任意内容生成小红书风格文章
+
+        Args:
+            content: 原始内容
+            title_prefix: 标题前缀
+
+        Returns:
+            小红书风格文章内容
+        """
+        if not content or len(content.strip()) < 50:
+            return None
+
+        print(f"  生成{title_prefix}小红书文章...")
+        article = self._generate_article(
+            content,
+            XIAOHONGSHU_SYSTEM_PROMPT,
+            "小红书"
+        )
+
+        return article
+
+    def generate_wechat_from_content(
+        self,
+        content: str,
+        title_prefix: str = "AI 动态"
+    ) -> Optional[str]:
+        """
+        从任意内容生成微信公众号风格文章
+
+        Args:
+            content: 原始内容
+            title_prefix: 标题前缀
+
+        Returns:
+            微信公众号风格文章内容
+        """
+        if not content or len(content.strip()) < 50:
+            return None
+
+        print(f"  生成{title_prefix}微信公众号文章...")
+        article = self._generate_article(
+            content,
+            WECHAT_SYSTEM_PROMPT,
+            "微信公众号"
+        )
+
+        return article

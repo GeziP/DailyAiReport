@@ -8,14 +8,16 @@
 - 🤖 支持任意 OpenAI 兼容 API（OpenAI、阿里云通义千问、智谱 GLM、DeepSeek 等）
 - 📝 自动生成多平台适配文章（原始总结 + 小红书 + 微信公众号）
 - 🖼️ 支持 AI 生成封面配图（小红书 + 微信公众号）
+- 🚀 **AI Builders Digest** - 追踪顶尖 AI Builders 的 X/Twitter 动态和播客内容
 - 📅 按日期存放 Markdown 输出文件
 - ⏰ GitHub Actions 定时自动运行（北京时间早上 7:00）
 - ⚙️ YAML 配置文件，方便添加新的 Newsletter 源
 
 ## 输出文件
 
-每天最多生成 5 个文件：
+每天最多生成 10 个文件：
 
+**Newsletter 总结：**
 | 文件 | 说明 |
 |------|------|
 | `YYYY-MM-DD.md` | 原始 Newsletter 总结 |
@@ -23,6 +25,15 @@
 | `YYYY-MM-DD-xiaohongshu-cover.png` | 小红书封面图（需配置图片 API） |
 | `YYYY-MM-DD-wechat.md` | 微信公众号风格文章（专业排版、结构完整） |
 | `YYYY-MM-DD-wechat-cover.png` | 微信公众号封面图（需配置图片 API） |
+
+**AI Builders Digest（来自 follow-builders skill）：**
+| 文件 | 说明 |
+|------|------|
+| `YYYY-MM-DD-builders.md` | AI Builders 动态总结（X/Twitter + 播客） |
+| `YYYY-MM-DD-builders-xiaohongshu.md` | Builders 小红书风格文章 |
+| `YYYY-MM-DD-builders-xiaohongshu-cover.png` | Builders 小红书封面图 |
+| `YYYY-MM-DD-builders-wechat.md` | Builders 微信公众号风格文章 |
+| `YYYY-MM-DD-builders-wechat-cover.png` | Builders 微信公众号封面图 |
 
 ## 快速开始
 
@@ -39,7 +50,14 @@ cd DailyAiPodcast
 pip install -r requirements.txt
 ```
 
-### 3. 配置环境变量
+### 3. 安装 follow-builders skill（用于 AI Builders Digest）
+
+```bash
+git clone https://github.com/zarazhangrui/follow-builders.git ~/.claude/skills/follow-builders
+cd ~/.claude/skills/follow-builders/scripts && npm install
+```
+
+### 4. 配置环境变量
 
 复制 `.env.example` 为 `.env`，填入你的配置：
 
@@ -87,7 +105,7 @@ IMAGE_MODEL=dall-e-3
 | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash`, `glm-4` |
 | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
 
-### 4. 配置 Newsletter 源
+### 5. 配置 Newsletter 源
 
 编辑 `config/newsletters.yaml`，添加你订阅的 Newsletter：
 
@@ -102,7 +120,7 @@ newsletters:
     enabled: true
 ```
 
-### 5. 本地运行测试
+### 6. 本地运行测试
 
 ```bash
 python -m src.main
@@ -166,6 +184,7 @@ DailyAiPodcast/
 │   ├── ai_summarizer.py      # AI 总结（OpenAI 兼容接口）
 │   ├── article_generator.py  # 多平台文章生成
 │   ├── image_generator.py    # 封面图生成
+│   ├── builders_digest.py    # AI Builders Digest 生成
 │   └── main.py               # 主程序
 ├── config/
 │   └── newsletters.yaml      # Newsletter 配置
@@ -197,6 +216,7 @@ newsletters:
 3. GitHub Actions 定时任务可能有几分钟延迟
 4. 小红书和微信文章生成需要额外的 AI API 调用
 5. 封面配图需要配置支持图片生成的 API（如 OpenAI DALL-E），阿里云通义千问暂不支持
+6. **AI Builders Digest** 需要 Node.js 环境来运行 follow-builders skill
 
 ## License
 

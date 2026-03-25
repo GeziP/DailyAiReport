@@ -13,6 +13,7 @@ from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
 from .image_generator import ImageGenerator
+from .builders_digest import generate_builders_digest
 
 
 def load_newsletters_config() -> list[dict]:
@@ -212,6 +213,64 @@ def main():
             content = f.read()
         with open(wechat_file, "w", encoding="utf-8") as f:
             f.write(f"![微信公众号封面](./{wechat_cover.name})\n\n{content}")
+
+    print("=" * 50)
+
+    # ========== 生成 AI Builders Digest ==========
+    print("\n" + "=" * 50)
+    print("AI Builders Digest 生成")
+    print("=" * 50)
+
+    builders_digest = generate_builders_digest()
+
+    if builders_digest:
+        # 保存 Builders Digest 原始摘要
+        builders_file = Config.OUTPUT_DIR / f"{date_str}-builders.md"
+        with open(builders_file, "w", encoding="utf-8") as f:
+            f.write(builders_digest)
+        print(f"  Builders Digest: {builders_file}")
+
+        # 生成 Builders Digest 多平台文章
+        print("\n正在生成 Builders Digest 多平台文章...")
+
+        builders_xhs_file = None
+        builders_wechat_file = None
+
+        # 生成小红书文章
+        builders_xhs = article_gen.generate_xiaohongshu_from_content(
+            builders_digest, "AI Builders"
+        )
+        if builders_xhs:
+            builders_xhs_file = Config.OUTPUT_DIR / f"{date_str}-builders-xiaohongshu.md"
+            with open(builders_xhs_file, "w", encoding="utf-8") as f:
+                f.write(builders_xhs)
+            print(f"  Builders 小红书文章: {builders_xhs_file}")
+
+        # 生成微信公众号文章
+        builders_wechat = article_gen.generate_wechat_from_content(
+            builders_digest, "AI Builders"
+        )
+        if builders_wechat:
+            builders_wechat_file = Config.OUTPUT_DIR / f"{date_str}-builders-wechat.md"
+            with open(builders_wechat_file, "w", encoding="utf-8") as f:
+                f.write(builders_wechat)
+            print(f"  Builders 微信公众号文章: {builders_wechat_file}")
+
+        # 生成封面图
+        builders_title = f"{date_str} AI Builders 动态"
+        builders_xhs_cover = image_gen.generate_xiaohongshu_cover(builders_title, date_str)
+        if builders_xhs_cover and builders_xhs_file:
+            with open(builders_xhs_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            with open(builders_xhs_file, "w", encoding="utf-8") as f:
+                f.write(f"![小红书封面](./{builders_xhs_cover.name})\n\n{content}")
+
+        builders_wechat_cover = image_gen.generate_wechat_cover(builders_title, date_str)
+        if builders_wechat_cover and builders_wechat_file:
+            with open(builders_wechat_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            with open(builders_wechat_file, "w", encoding="utf-8") as f:
+                f.write(f"![微信公众号封面](./{builders_wechat_cover.name})\n\n{content}")
 
     print("=" * 50)
 
