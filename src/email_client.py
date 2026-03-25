@@ -1,4 +1,4 @@
-"""IMAP 邮件客户端 - 支持 QQ 邮箱"""
+"""IMAP 邮件客户端 - 支持任意邮箱"""
 
 import imaplib
 import email
@@ -37,8 +37,8 @@ class EmailClient:
                 Config.IMAP_PORT
             )
             self.connection.login(
-                Config.QQ_EMAIL,
-                Config.QQ_EMAIL_AUTH_CODE
+                Config.IMAP_USER,
+                Config.IMAP_PASSWORD
             )
             return True
         except Exception as e:

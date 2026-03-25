@@ -1,4 +1,4 @@
-"""阿里云通义千问 AI 总结模块（Anthropic 兼容接口）"""
+"""AI 总结模块（OpenAI 兼容接口）"""
 
 from typing import Optional
 import httpx
@@ -32,7 +32,7 @@ SYSTEM_PROMPT = """你是一个专业的 AI 新闻和产品通讯总结助手。
 
 
 class AISummarizer:
-    """阿里云通义千问 AI 总结器（Anthropic 兼容接口）"""
+    """AI 总结器（OpenAI 兼容接口）"""
 
     def __init__(self):
         # 配置 HTTP 客户端，增加超时时间
@@ -40,12 +40,12 @@ class AISummarizer:
             timeout=httpx.Timeout(60.0, connect=30.0)
         )
         self.client = OpenAI(
-            api_key=Config.ANTHROPIC_API_KEY,
-            base_url=Config.ANTHROPIC_BASE_URL,
+            api_key=Config.AI_API_KEY,
+            base_url=Config.AI_BASE_URL,
             http_client=http_client
         )
-        self.model = Config.ANTHROPIC_MODEL
-        print(f"AI 配置: model={self.model}, base_url={Config.ANTHROPIC_BASE_URL}")
+        self.model = Config.AI_MODEL
+        print(f"AI 配置: model={self.model}, base_url={Config.AI_BASE_URL}")
 
     def summarize(
         self,
