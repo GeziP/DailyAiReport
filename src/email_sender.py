@@ -218,33 +218,54 @@ def markdown_to_html(markdown_content: str, title: str = "") -> str:
 def send_daily_summary(
     date_str: str,
     summary_file: Path,
+    builders_file: Optional[Path] = None,
+    recommendations_file: Optional[Path] = None,
     attachments: Optional[List[Path]] = None
 ) -> bool:
     """
-    发送每日总结邮件
+    发送每日总结邮件（包含 Newsletter 总结、Builders Digest 和推荐）
 
     Args:
         date_str: 日期字符串 (YYYY-MM-DD)
-        summary_file: 总结文件路径
+        summary_file: Newsletter 总结文件路径
+        builders_file: Builders Digest 文件路径
+        recommendations_file: 推荐报告文件路径
         attachments: 附加的附件列表
 
     Returns:
         发送成功返回 True
     """
-    if not summary_file.exists():
-        print(f"总结文件不存在: {summary_file}")
+    # 读取 Newsletter 总结
+    markdown_parts = []
+    if summary_file and summary_file.exists():
+        with open(summary_file, 'r', encoding='utf-8') as f:
+            markdown_parts.append(f.read())
+
+    # 读取 Builders Digest
+    if builders_file and builders_file.exists():
+        with open(builders_file, 'r', encoding='utf-8') as f:
+            builders_content = f.read()
+            markdown_parts.append("\n\n---\n\n" + builders_content)
+
+    # 读取推荐报告
+    if recommendations_file and recommendations_file.exists():
+        with open(recommendations_file, 'r', encoding='utf-8') as f:
+            rec_content = f.read()
+            markdown_parts.append("\n\n---\n\n" + rec_content)
+
+    if not markdown_parts:
+        print("没有内容可发送")
         return False
 
-    # 读取总结内容
-    with open(summary_file, 'r', encoding='utf-8') as f:
-        markdown_content = f.read()
+    # 合并所有内容
+    markdown_content = "\n".join(markdown_parts)
 
     # 转换为 HTML
-    html_content = markdown_to_html(markdown_content, f"AI Newsletter 每日总结 - {date_str}")
+    html_content = markdown_to_html(markdown_content, f"AI 每日资讯 - {date_str}")
 
     # 发送邮件
     sender = EmailSender()
-    subject = f"📬 AI Newsletter 每日总结 - {date_str}"
+    subject = f"📬 AI 每日资讯 - {date_str}"
 
     success_count = sender.send_to_recipients(
         subject=subject,

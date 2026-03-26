@@ -224,6 +224,7 @@ def main():
     print("=" * 50)
 
     builders_digest = generate_builders_digest()
+    builders_file = None
 
     if builders_digest:
         # 保存 Builders Digest 原始摘要
@@ -278,6 +279,7 @@ def main():
 
     # ========== 生成 Builder/播客推荐 ==========
     recommendations = generate_recommendations()
+    rec_report = None
     if recommendations:
         from .recommender import SourceRecommender
         recommender = SourceRecommender()
@@ -295,15 +297,23 @@ def main():
 
         # 收集附件
         attachments = []
+        if output_file and output_file.exists():
+            attachments.append(output_file)
         if xhs_file and xhs_file.exists():
             attachments.append(xhs_file)
         if wechat_file and wechat_file.exists():
             attachments.append(wechat_file)
+        if builders_file and builders_file.exists():
+            attachments.append(builders_file)
+        if rec_report and rec_report.exists():
+            attachments.append(rec_report)
 
         # 发送总结邮件
         send_daily_summary(
             date_str=date_str,
             summary_file=output_file,
+            builders_file=builders_file,
+            recommendations_file=rec_report,
             attachments=attachments if attachments else None
         )
         print("=" * 50)
