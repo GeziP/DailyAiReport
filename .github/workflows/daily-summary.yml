@@ -33,6 +33,43 @@ jobs:
           git clone https://github.com/zarazhangrui/follow-builders.git ~/.claude/skills/follow-builders
           cd ~/.claude/skills/follow-builders/scripts && npm install
 
+      - name: Merge custom follow-builders sources
+        run: |
+          python -c "
+          import json
+          from pathlib import Path
+
+          # 读取默认配置
+          default_path = Path.home() / '.claude/skills/follow-builders/config/default-sources.json'
+          with open(default_path) as f:
+              config = json.load(f)
+
+          # 读取自定义配置
+          custom_path = 'config/follow-builders-sources.json'
+          with open(custom_path) as f:
+              custom = json.load(f)
+
+          # 合并 X accounts
+          existing_handles = {a['handle'].lower() for a in config.get('x_accounts', [])}
+          for account in custom.get('x_accounts', []):
+              if account['handle'].lower() not in existing_handles:
+                  config['x_accounts'].append(account)
+                  print(f\"Added X account: {account['name']} (@{account['handle']})\")
+
+          # 合并 podcasts
+          existing_names = {p['name'].lower() for p in config.get('podcasts', [])}
+          for podcast in custom.get('podcasts', []):
+              if podcast['name'].lower() not in existing_names:
+                  config['podcasts'].append(podcast)
+                  print(f\"Added podcast: {podcast['name']}\")
+
+          # 保存合并后的配置
+          with open(default_path, 'w') as f:
+              json.dump(config, f, indent=2)
+
+          print(f\"Total: {len(config['x_accounts'])} X accounts, {len(config['podcasts'])} podcasts\")
+          "
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

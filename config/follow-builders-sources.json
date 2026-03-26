@@ -1,0 +1,28 @@
+{
+  "x_accounts": [
+    { "name": "Fei-Fei Li", "handle": "drfeifei" },
+    { "name": "Andrew Ng", "handle": "AndrewYNg" },
+    { "name": "Jim Fan", "handle": "DrJimFan" },
+    { "name": "Yannic Kilcher", "handle": "YannicKilcher" }
+  ],
+  "podcasts": [
+    {
+      "name": "The Tim Ferriss Show",
+      "type": "youtube_channel",
+      "url": "https://www.youtube.com/@TimFerriss",
+      "channelHandle": "TimFerriss"
+    },
+    {
+      "name": "Eye on AI",
+      "type": "youtube_channel",
+      "url": "https://www.youtube.com/@EyeonAI",
+      "channelHandle": "EyeonAI"
+    },
+    {
+      "name": "The Peter Attia Drive",
+      "type": "youtube_channel",
+      "url": "https://www.youtube.com/@PeterAttiaMD",
+      "channelHandle": "PeterAttiaMD"
+    }
+  ]
+}
