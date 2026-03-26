@@ -13,30 +13,36 @@ from .config import Config
 
 
 # Builders Digest 系统提示词
-BUILDERS_SYSTEM_PROMPT = """你是一个专业的 AI 行业动态总结助手。你的任务是将 AI Builders（创业者、研究者、工程师）的动态和观点进行精炼总结。
+BUILDERS_SYSTEM_PROMPT = """你是一个专业的 AI 行业动态总结助手。你的任务是将 AI Builders（创业者、研究者、工程师）的动态和观点进行详细总结。
 
 总结要求：
 1. 保持客观，准确传达原文要点
-2. 突出最重要的信息和观点
+2. 提供详细、完整的信息，不要过度精简
 3. 使用清晰的 Markdown 格式
 4. 按主题/人物分类整理内容
 5. 保留原文链接
+6. 展开每个观点的背景和意义
 
 输出格式：
 ## AI Builders 动态摘要
 
 ### 核心观点
-- 列出 3-5 个最重要的观点或动态
+- 列出所有重要的观点或动态，每条详细说明
 
 ### 详细内容
-按主题或人物分组，每个部分包含：
-- 观点摘要
+按人物或主题分组，每个部分包含：
+- 该 builder 的背景和观点摘要
+- 具体推文或发言内容的详细解读
+- 观点的背景、意义和影响
 - 来源链接
 
-### 推荐关注
-列出值得关注的人物或话题（如有）
+### 行业趋势
+总结当前 AI 行业的热点话题和发展趋势
 
-注意：内容来源于 X (Twitter) 和 YouTube 播客，请保持信息的准确性和时效性。"""
+### 推荐关注
+列出值得关注的人物或话题，说明原因
+
+注意：内容来源于 X (Twitter) 和 YouTube 播客，请保持信息的准确性和时效性。尽量保留原文的细节和深度。"""
 
 
 @dataclass
@@ -145,7 +151,7 @@ class BuildersDigestSummarizer:
             if bio:
                 content_parts.append(f"*{bio}*\n")
 
-            for tweet in tweets[:5]:  # 每人最多 5 条
+            for tweet in tweets:  # 不限制数量，按时间过滤由 prepare-digest.js 处理
                 text = tweet.get("text", "")
                 url = tweet.get("url", "")
                 if text:
@@ -178,9 +184,9 @@ class BuildersDigestSummarizer:
 
             # 截取转录内容（避免太长）
             if transcript:
-                # 取前 5000 字符
-                transcript_preview = transcript[:5000]
-                if len(transcript) > 5000:
+                # 取前 10000 字符
+                transcript_preview = transcript[:10000]
+                if len(transcript) > 10000:
                     transcript_preview += "..."
                 content_parts.append(f"```\n{transcript_preview}\n```")
             content_parts.append("")
@@ -218,7 +224,7 @@ class BuildersDigestSummarizer:
                     {"role": "system", "content": BUILDERS_SYSTEM_PROMPT},
                     {"role": "user", "content": f"请总结以下 AI Builders 动态内容：\n\n{full_content}"}
                 ],
-                max_tokens=3000,
+                # 不设置 max_tokens 限制，让 AI 输出完整内容
                 temperature=0.7
             )
 
