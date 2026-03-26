@@ -1,0 +1,16 @@
+# 观察队列 - 推荐但尚未关注的来源
+# 状态说明:
+#   pending - 待观察
+#   added - 已添加关注
+#   ignored - 忽略
+
+watchlist: []
+# 示例:
+# - name: "Example Builder"
+#   type: "builder"
+#   platform: "twitter"
+#   handle: "@example"
+#   reason: "与 karpathy 风格相似，专注 AI 工程"
+#   topics: ["AI", "Engineering"]
+#   status: "pending"
+#   added_date: "2026-03-26"

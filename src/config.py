@@ -20,6 +20,14 @@ class Config:
     IMAP_USER = os.getenv("IMAP_USER", "")  # 邮箱地址
     IMAP_PASSWORD = os.getenv("IMAP_PASSWORD", "")  # 密码或授权码
 
+    # SMTP 配置（用于发送邮件，通常与 IMAP 同服务器）
+    SMTP_SERVER = os.getenv("SMTP_SERVER", "")  # 默认自动推导
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "465") or "465")
+
+    # 邮件推送收件人（多个用逗号分隔）
+    EMAIL_RECIPIENTS_STR = os.getenv("EMAIL_RECIPIENTS", "")
+    EMAIL_RECIPIENTS = [e.strip() for e in EMAIL_RECIPIENTS_STR.split(",") if e.strip()]
+
     # 通用 AI API 配置（OpenAI 兼容接口）
     AI_API_KEY = os.getenv("AI_API_KEY", "")
     AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openai.com/v1") or "https://api.openai.com/v1"

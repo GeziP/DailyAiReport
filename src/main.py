@@ -14,6 +14,8 @@ from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
 from .image_generator import ImageGenerator
 from .builders_digest import generate_builders_digest
+from .email_sender import send_daily_summary
+from .recommender import generate_recommendations
 
 
 def load_newsletters_config() -> list[dict]:
@@ -273,6 +275,38 @@ def main():
                 f.write(f"![微信公众号封面](./{builders_wechat_cover.name})\n\n{content}")
 
     print("=" * 50)
+
+    # ========== 生成 Builder/播客推荐 ==========
+    recommendations = generate_recommendations()
+    if recommendations:
+        from .recommender import SourceRecommender
+        recommender = SourceRecommender()
+        rec_report = recommender.save_recommendations_report(
+            recommendations, Config.OUTPUT_DIR, date_str
+        )
+        if rec_report:
+            print(f"推荐报告已保存: {rec_report}")
+
+    # ========== 发送邮件推送 ==========
+    if Config.EMAIL_RECIPIENTS:
+        print("\n" + "=" * 50)
+        print("邮件推送")
+        print("=" * 50)
+
+        # 收集附件
+        attachments = []
+        if xhs_file and xhs_file.exists():
+            attachments.append(xhs_file)
+        if wechat_file and wechat_file.exists():
+            attachments.append(wechat_file)
+
+        # 发送总结邮件
+        send_daily_summary(
+            date_str=date_str,
+            summary_file=output_file,
+            attachments=attachments if attachments else None
+        )
+        print("=" * 50)
 
     return 0
 
