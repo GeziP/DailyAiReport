@@ -16,7 +16,6 @@ from .image_generator import ImageGenerator
 from .builders_digest import generate_builders_digest
 from .email_sender import send_daily_summary
 from .recommender import generate_recommendations
-from .wechat_draft import WechatDraftClient
 
 
 def load_newsletters_config() -> list[dict]:
@@ -217,12 +216,6 @@ def main():
         with open(wechat_file, "w", encoding="utf-8") as f:
             f.write(f"![微信公众号封面](./{wechat_cover.name})\n\n{content}")
 
-    # 发布微信公众号草稿
-    wechat_client = WechatDraftClient()
-    if wechat_client.should_publish() and wechat_file:
-        print("\n正在发布微信公众号草稿...")
-        wechat_client.publish_draft(wechat_file, wechat_cover)
-
     print("=" * 50)
 
     # ========== 生成 AI Builders Digest ==========
@@ -281,11 +274,6 @@ def main():
                 content = f.read()
             with open(builders_wechat_file, "w", encoding="utf-8") as f:
                 f.write(f"![微信公众号封面](./{builders_wechat_cover.name})\n\n{content}")
-
-            # 发布 Builders 微信公众号草稿
-            if wechat_client.should_publish():
-                print("\n正在发布 Builders 微信公众号草稿...")
-                wechat_client.publish_draft(builders_wechat_file, builders_wechat_cover)
 
     print("=" * 50)
 
