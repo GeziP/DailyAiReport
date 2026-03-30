@@ -219,7 +219,7 @@ def main():
 
     # 发布微信公众号草稿
     wechat_client = WechatDraftClient()
-    if wechat_client.is_configured() and wechat_file:
+    if wechat_client.should_publish() and wechat_file:
         print("\n正在发布微信公众号草稿...")
         wechat_client.publish_draft(wechat_file, wechat_cover)
 
@@ -283,7 +283,7 @@ def main():
                 f.write(f"![微信公众号封面](./{builders_wechat_cover.name})\n\n{content}")
 
             # 发布 Builders 微信公众号草稿
-            if wechat_client.is_configured():
+            if wechat_client.should_publish():
                 print("\n正在发布 Builders 微信公众号草稿...")
                 wechat_client.publish_draft(builders_wechat_file, builders_wechat_cover)
 

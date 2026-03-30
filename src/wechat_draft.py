@@ -1,5 +1,6 @@
 """微信公众号草稿箱模块"""
 
+import os
 import time
 import httpx
 from pathlib import Path
@@ -20,6 +21,13 @@ class WechatDraftClient:
     def is_configured(self) -> bool:
         """检查是否已配置微信 AppID 和 Secret"""
         return bool(self.app_id and self.app_secret)
+
+    def should_publish(self) -> bool:
+        """检查是否应该发布草稿（只在本地环境发布，GitHub Actions IP 不在白名单）"""
+        # GitHub Actions 环境变量存在时不自动发布
+        if os.getenv('GITHUB_ACTIONS') == 'true':
+            return False
+        return self.is_configured()
 
     def _get_access_token(self) -> Optional[str]:
         """获取 access_token（自动缓存和刷新）"""
