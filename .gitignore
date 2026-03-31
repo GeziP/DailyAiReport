@@ -14,8 +14,19 @@ ENV/
 .vscode/
 *.swp
 
-# 输出文件（可选，如果想保留历史记录可以注释掉）
-# output/
+# 输出文件
+output/
+
+# 测试/临时输出目录
+artifact_final/
+artifact_final2/
+artifact_final3/
+artifact_final4/
+artifact_final5/
+artifact_output/
+artifact_output2/
+artifact_output3/
+artifact_test/
 
 # 系统文件
 .DS_Store

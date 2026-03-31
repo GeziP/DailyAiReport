@@ -249,9 +249,9 @@ def main():
                 f.write(builders_xhs)
             print(f"  Builders 小红书文章: {builders_xhs_file}")
 
-        # 生成微信公众号文章
-        builders_wechat = article_gen.generate_wechat_from_content(
-            builders_digest, "AI Builders"
+        # 生成微信公众号文章（使用专用排版方法）
+        builders_wechat = article_gen.generate_wechat_for_builders(
+            builders_digest
         )
         if builders_wechat:
             builders_wechat_file = Config.OUTPUT_DIR / f"{date_str}-builders-wechat.md"
