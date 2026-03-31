@@ -412,3 +412,111 @@ class ArticleGenerator:
                     continue
                 print(f"Builders 微信文章生成失败: {type(e).__name__}: {e}")
                 return None
+
+    def generate_unified_xiaohongshu(
+        self,
+        unified_content: str
+    ) -> Optional[str]:
+        """
+        从统一日报内容生成小红书风格文章
+
+        Args:
+            unified_content: 融合后的统一日报内容
+
+        Returns:
+            小红书风格文章内容
+        """
+        if not unified_content or len(unified_content.strip()) < 50:
+            return None
+
+        print("  生成统一日报小红书文章...")
+
+        user_prompt = f"""请将以下 AI 日报内容改写为小红书风格的文章。
+
+---
+
+{unified_content}
+
+---
+
+**核心要求（必须遵守）：**
+1. 完整保留原文所有内容，一字不漏
+2. 不要精简、缩写、省略任何观点或细节
+3. 原文有几个部分，输出就必须有几个部分
+4. 只改变表达风格（emoji丰富、段落短小、互动引导）
+5. 保留所有关键字加粗"""
+
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": XIAOHONGSHU_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.8
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"小红书文章生成失败，重试中... ({attempt + 1}/{max_retries})")
+                    continue
+                print(f"小红书文章生成失败: {type(e).__name__}: {e}")
+                return None
+
+    def generate_unified_wechat(
+        self,
+        unified_content: str
+    ) -> Optional[str]:
+        """
+        从统一日报内容生成微信公众号风格文章
+
+        Args:
+            unified_content: 融合后的统一日报内容
+
+        Returns:
+            微信公众号风格文章内容
+        """
+        if not unified_content or len(unified_content.strip()) < 50:
+            return None
+
+        print("  生成统一日报微信公众号文章...")
+
+        user_prompt = f"""请将以下 AI 日报内容改写为微信公众号风格的文章。
+
+---
+
+{unified_content}
+
+---
+
+**核心要求（必须遵守）：**
+1. 完整保留原文所有内容，一字不漏
+2. 不要精简、缩写、省略任何观点或细节
+3. 原文有几个部分，输出就必须有几个部分
+4. 只调整排版格式（分节、加粗、来源脚注），不改内容
+5. 使用专业的排版格式：
+   - 标题：AI 日报 | 主话题
+   - 导语：关键词加粗
+   - 正文：按序号分节
+   - 来源：脚注格式（编号+标题一行，URL一行）"""
+
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": WECHAT_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.7
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"微信公众号文章生成失败，重试中... ({attempt + 1}/{max_retries})")
+                    continue
+                print(f"微信公众号文章生成失败: {type(e).__name__}: {e}")
+                return None

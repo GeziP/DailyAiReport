@@ -1,0 +1,42 @@
+# AI 日报 - {{ date }}
+
+{% if overview %}
+## 今日概览
+
+{{ overview }}
+
+{% endif %}
+
+{% if newsletter_content %}
+## 一、AI Newsletter 精选
+
+{{ newsletter_content }}
+
+{% endif %}
+
+{% if builders_content %}
+## 二、AI Builders 动态
+
+{{ builders_content }}
+
+{% endif %}
+
+{% if recommendations %}
+## 三、新发现的优质来源
+
+{{ recommendations }}
+
+{% endif %}
+
+{% if all_links %}
+## 参考来源
+
+{% for link in all_links %}
+[{{ loop.index }}] {{ link.title }}
+{{ link.url }}
+
+{% endfor %}
+{% endif %}
+
+---
+*生成时间: {{ generated_at }}*
