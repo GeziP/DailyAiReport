@@ -1,4 +1,4 @@
-# Daily AI Podcast - AI 日报自动生成
+# Daily AI Report - AI 日报自动生成
 
 自动聚合 AI 信息源，使用 AI 智能总结，生成多平台适配的日报文章。
 
@@ -94,8 +94,8 @@ cd ~/.claude/skills/follow-builders/scripts && npm install
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/GeziP/DailyAiPodcast.git
-cd DailyAiPodcast
+git clone https://github.com/GeziP/DailyAiReport.git
+cd DailyAiReport
 ```
 
 ### 2. 安装依赖
@@ -238,7 +238,7 @@ Actions 运行完成后，下载 Artifact 查看生成的日报文件。
 ## 目录结构
 
 ```
-DailyAiPodcast/
+DailyAiReport/
 ├── src/                     # 核心模块
 │   ├── config.py            # 配置管理
 │   ├── email_client.py      # 邮件获取
