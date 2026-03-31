@@ -46,19 +46,33 @@ class Config:
     @classmethod
     def _apply_backward_compatibility(cls):
         """处理旧环境变量名的向后兼容"""
+        # IMAP 配置
         if not cls.IMAP_USER:
             cls.IMAP_USER = os.getenv("QQ_EMAIL", "")
         if not cls.IMAP_PASSWORD:
             cls.IMAP_PASSWORD = os.getenv("QQ_EMAIL_AUTH_CODE", "")
+
+        # AI API 配置
         if not cls.AI_API_KEY:
-            cls.AI_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-        # AI_BASE_URL 和 AI_MODEL 仅在使用默认值时才 fallback
+            cls.AI_API_KEY = (
+                os.getenv("ANTHROPIC_API_KEY", "") or
+                os.getenv("DASHSCOPE_API_KEY", "") or
+                os.getenv("ZHIPU_API_KEY", "")
+            )
+
         old_base_url = os.getenv("ANTHROPIC_BASE_URL", "")
         if old_base_url:
             cls.AI_BASE_URL = old_base_url
+
         old_model = os.getenv("ANTHROPIC_MODEL", "")
         if old_model:
             cls.AI_MODEL = old_model
+
+        # IMAP 服务器默认值（QQ 邮箱）
+        if not cls.IMAP_SERVER or cls.IMAP_SERVER == "imap.qq.com":
+            # 如果使用 QQ_EMAIL，确保 IMAP_SERVER 正确
+            if cls.IMAP_USER and "@qq.com" in cls.IMAP_USER:
+                cls.IMAP_SERVER = "imap.qq.com"
 
     # 输出目录
     OUTPUT_DIR = BASE_DIR / "output"
