@@ -51,9 +51,9 @@ class AISummarizer:
     """AI 总结器（OpenAI 兼容接口）"""
 
     def __init__(self):
-        # 配置 HTTP 客户端，增加超时时间
+        # 配置 HTTP 客户端，增加超时时间到 3 分钟
         http_client = httpx.Client(
-            timeout=httpx.Timeout(60.0, connect=30.0)
+            timeout=httpx.Timeout(180.0, connect=30.0)
         )
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
@@ -67,7 +67,7 @@ class AISummarizer:
         self,
         content: str,
         newsletter_name: str,
-        max_tokens: int = 2000
+        max_tokens: int = 4000
     ) -> Optional[str]:
         """
         总结 Newsletter 内容

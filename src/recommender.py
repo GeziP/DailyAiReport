@@ -75,7 +75,7 @@ class SourceRecommender:
     ]
 
     def __init__(self):
-        http_client = httpx.Client(timeout=httpx.Timeout(60.0, connect=30.0))
+        http_client = httpx.Client(timeout=httpx.Timeout(120.0, connect=30.0))
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
             base_url=Config.AI_BASE_URL,
