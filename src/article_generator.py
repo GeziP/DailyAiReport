@@ -159,8 +159,9 @@ class ArticleGenerator:
     """文章生成器 - 生成小红书和微信公众号格式"""
 
     def __init__(self):
+        # 详细完整版本需要更长的超时时间
         http_client = httpx.Client(
-            timeout=httpx.Timeout(120.0, connect=30.0)  # 增加超时到 2 分钟
+            timeout=httpx.Timeout(300.0, connect=30.0)  # 5 分钟超时
         )
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
