@@ -267,7 +267,7 @@ class BuildersDigestSummarizer:
 
     def __init__(self):
         http_client = httpx.Client(
-            timeout=httpx.Timeout(600.0, connect=120.0)
+            timeout=httpx.Timeout(2400.0, connect=120.0)
         )
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
