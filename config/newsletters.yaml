@@ -2,16 +2,6 @@
 # 在此添加你订阅的 Newsletter，设置 enabled: false 可临时禁用
 
 newsletters:
-  # Lenny's Newsletter - 产品和技术洞察
-  - name: "Lenny's Newsletter"
-    sender: "lenny+how-i-ai@substack.com"
-    enabled: true
-
-  # Every - 产品设计和工具
-  - name: "Every"
-    sender: "hello@every.to"
-    enabled: true
-
   # The AI Break - AI 新闻和趋势
   - name: "The AI Break"
     sender: "theaibreak@substack.com"
@@ -21,6 +11,20 @@ newsletters:
   - name: "AI Valley"
     sender: "aivalley@mail.beehiiv.com"
     enabled: true
+
+  # ================================
+  # 已禁用的 Newsletter
+  # ================================
+
+  # Lenny's Newsletter - 产品和技术洞察（质量不稳定）
+  - name: "Lenny's Newsletter"
+    sender: "lenny+how-i-ai@substack.com"
+    enabled: false
+
+  # Every - 产品设计和工具（质量不高）
+  - name: "Every"
+    sender: "hello@every.to"
+    enabled: false
 
   # ================================
   # 更多 Newsletter 模板（取消注释启用）

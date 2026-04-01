@@ -130,64 +130,88 @@ def filter_duplicates(data: dict) -> dict:
 BUILDERS_SYSTEM_PROMPT = """你是一个专业的 AI 行业动态总结助手。你的任务是将 AI Builders（创业者、研究者、工程师）的动态和观点进行详细、完整的总结。
 
 ## 核心原则
-1. **完整保留原文信息**：不要过度精简，保留每个观点的完整内容和细节
-2. **展开背景和意义**：对于每个观点，说明其背景、影响和行业意义
-3. **保持人物视角**：清晰呈现每个 builder 的身份、立场和观点脉络
+1. **详细完整**：每个观点都要展开说明，不要精简，保留原文细节
+2. **引用标注**：原文引用必须用*斜体*标注，并添加 [1][2] 这样的数字角标
+3. **链接汇总**：所有引用链接在文末统一列出，便于阅读定位
 4. **客观准确**：准确传达原文要点，不添加主观判断
 
-## 关键字加粗规则（必须遵守）
-- **人名**加粗：**Karpathy**、**Sam Altman**、**Andrej Karpathy**
-- **公司/产品**加粗：**OpenAI**、**Anthropic**、**Claude**、**Vercel**
-- **数据/数字**加粗：**100倍**、**10亿美元**、**30天**
-- **核心概念**加粗：**Agent**、**SaaSpocalypse**、**Headless API**
+## 格式规则
 
-## 分段分行规则
-- 每个观点单独一段，不要堆在一起
+### 关键字加粗规则（必须遵守）
+- **人名**加粗：**Karpathy**、**Sam Altman**
+- **公司/产品**加粗：**OpenAI**、**Anthropic**、**Claude**
+- **数据/数字**加粗：**100倍**、**10亿美元**
+- **核心概念**加粗：**Agent**、**LLM**、**Reasoning**
+
+### 引用标注规则（必须遵守）
+- 原文引用用*斜体*包裹
+- 每个引用后加角标 [1][2] 等
+- 角标按出现顺序递增
+- 文末列出所有引用链接
+
+示例：
+> *New supply chain attack this time for npm axios* [1]，这是 **Karpathy** 发现的最新安全问题。
+
+### 分段分行规则
+- 每个观点单独一段
 - 观点之间空一行
 - 列表项用 `-` 开头
-- 来源链接另起一行
 
 ## 输出格式
 
-### 第一部分：今日概览
-- 列出今日/本周涉及的主要话题（3-5个关键词，加粗）
-- 简要说明话题之间的关联性
-- 提及涉及的主要人物（人名加粗）
+### 今日概览
+- 列出主要话题（3-5个关键词，加粗）
+- 简要说明话题关联性
+- 提及主要人物（人名加粗）
 
-### 第二部分：核心观点
-按照重要性排序，列出所有重要观点（每个观点详细说明）：
-- **观点标题**：简洁有力的观点概括
-- 观点来源：哪位 **builder** 提出此观点
-- 观点内容：完整的原文内容（不要精简）
-- 背景/意义：说明这个观点为什么重要，对行业的影响
-- 相关链接
+### 核心观点
 
-### 第三部分：详细内容（按人物展开）
+按重要性排序，每个观点详细展开：
+
+#### **[观点标题]**
+
+**观点来源**：**[Builder 姓名]**
+
+**核心内容**：
+[详细展开观点内容，引用原文时用*斜体*并加角标 [1]]
+
+**背景/意义**：
+[说明为什么重要，对行业的影响]
+
+---
+
+### 详细内容（按 Builder 展开）
+
 为每个重要的 builder 建立独立章节：
 
 #### **[Builder 姓名]**
-- **身份背景**：简要介绍其身份、公司/项目、行业影响力
-- **核心观点摘要**：列出其今日的主要观点（用原文）
-- **观点详解**：展开每个观点的具体内容、论证过程
-- **行业关联**：其观点与其他 builder 的观点有何呼应或对比
-- **来源链接**：列出其所有推文/发言链接
+*[身份背景]*
 
-### 第四部分：行业趋势与脉络
+**核心观点**：
+- 观点1：[详细内容，引用用*斜体*和角标 [2]]
+- 观点2：[详细内容]
+
+**行业洞察**：
+[与其他观点的关联或对比]
+
+---
+
+### 行业趋势
+
 - **热点话题**：当前最受关注的议题
-- **观点交锋**：不同 builder 之间的观点对比或呼应
-- **时间线**：按时间顺序梳理事件发展脉络（如有）
-- **趋势预判**：基于内容分析可能的发展方向
+- **观点交锋**：不同 builder 的观点对比
+- **趋势预判**：可能的发展方向
 
-### 第五部分：推荐关注
-- **关键人物**：列出值得持续关注的 builder 及原因
-- **热门话题**：建议持续追踪的话题方向
-- **相关资源**：播客、文章、项目等推荐
+### 参考来源
+
+[1] https://x.com/xxx/status/xxx
+[2] https://x.com/yyy/status/yyy
+...
 
 ## 注意事项
-- 尽量保留原文的措辞和表达风格，不要过度改写
-- 如果 builder 提供了具体数据、案例，务必完整呈现
-- 每个观点都要标注来源链接
-- 内容来源于 X (Twitter) 和 YouTube 播客，注意区分不同来源的特点"""
+- 必须保留原文的具体措辞和数据
+- 引用必须标注角标，文末必须列出链接
+- 不要过度改写，保持原文风格"""
 
 
 @dataclass
@@ -281,29 +305,34 @@ class BuildersDigestSummarizer:
         if not builders:
             return ""
 
-        # 构建内容
+        # 构建内容 - 传递完整信息给 AI
         content_parts = ["## X/Twitter 动态\n"]
 
         for builder in builders:
             name = builder.get("name", "Unknown")
+            handle = builder.get("handle", "")
             bio = builder.get("bio", "")
             tweets = builder.get("tweets", [])
 
             if not tweets:
                 continue
 
-            content_parts.append(f"### {name}")
+            content_parts.append(f"### {name} (@{handle})")
             if bio:
-                content_parts.append(f"*{bio}*\n")
+                content_parts.append(f"简介: {bio}\n")
 
-            for tweet in tweets:  # 不限制数量，按时间过滤由 prepare-digest.js 处理
+            content_parts.append("推文:")
+            for i, tweet in enumerate(tweets, 1):
                 text = tweet.get("text", "")
                 url = tweet.get("url", "")
+                created = tweet.get("createdAt", "")
                 if text:
-                    content_parts.append(f"- {text}")
+                    content_parts.append(f"\n[推文{i}] {text}")
                     if url:
-                        content_parts.append(f"  [链接]({url})")
-            content_parts.append("")
+                        content_parts.append(f"\n链接: {url}")
+                    if created:
+                        content_parts.append(f"\n时间: {created}")
+            content_parts.append("\n")
 
         return "\n".join(content_parts)
 
@@ -314,26 +343,26 @@ class BuildersDigestSummarizer:
 
         content_parts = ["## 播客摘要\n"]
 
-        for podcast in podcasts:
+        for i, podcast in enumerate(podcasts, 1):
             name = podcast.get("name", "Unknown Podcast")
             title = podcast.get("title", "")
             url = podcast.get("url", "")
             transcript = podcast.get("transcript", "")
 
-            content_parts.append(f"### {name}")
+            content_parts.append(f"### [播客{i}] {name}")
             if title:
-                content_parts.append(f"**{title}**")
+                content_parts.append(f"标题: {title}")
             if url:
-                content_parts.append(f"[收听链接]({url})")
+                content_parts.append(f"链接: {url}")
             content_parts.append("")
 
             # 截取转录内容（避免太长）
             if transcript:
-                # 取前 10000 字符
-                transcript_preview = transcript[:10000]
-                if len(transcript) > 10000:
+                # 取前 15000 字符
+                transcript_preview = transcript[:15000]
+                if len(transcript) > 15000:
                     transcript_preview += "..."
-                content_parts.append(f"```\n{transcript_preview}\n```")
+                content_parts.append(f"转录内容:\n{transcript_preview}")
             content_parts.append("")
 
         return "\n".join(content_parts)
@@ -349,25 +378,30 @@ class BuildersDigestSummarizer:
             return None
 
         # 构建完整内容
-        full_content = f"""# AI Builders Digest
+        full_content = f"""# AI Builders 原始数据
 
-统计信息：
+## 统计信息
 - X/Twitter Builders: {stats.get('xBuilders', 0)}
 - 推文总数: {stats.get('totalTweets', 0)}
 - 播客数量: {stats.get('podcastEpisodes', 0)}
-- 生成时间: {stats.get('feedGeneratedAt', 'N/A')}
+- Feed 生成时间: {stats.get('feedGeneratedAt', 'N/A')}
 
 {x_content}
 
 {podcast_content}
-"""
+
+---
+请根据以上原始数据生成详细的 AI Builders 动态总结。注意：
+1. 引用原文时用*斜体*并添加角标 [1][2] 等
+2. 在文末"参考来源"部分列出所有引用链接
+3. 保持内容详细完整，不要过度精简"""
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": BUILDERS_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"请总结以下 AI Builders 动态内容：\n\n{full_content}"}
+                    {"role": "user", "content": full_content}
                 ],
                 # 不设置 max_tokens 限制，让 AI 输出完整内容
                 temperature=0.7
