@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
 from jinja2 import Environment, FileSystemLoader
@@ -217,41 +218,55 @@ def main():
     today = datetime.now()
     date_str = today.strftime("%Y-%m-%d")
 
-    # ========== 1. 获取 Newsletter 总结 ==========
+    # ========== 1. 并行获取 Newsletter 和 Builders Digest ==========
     print("\n" + "=" * 50)
-    print("AI Newsletter 获取与总结")
+    print("并行获取 Newsletter 和 Builders Digest")
     print("=" * 50)
 
     newsletters_config = load_newsletters_config()
-    if newsletters_config:
-        print(f"已配置 {len(newsletters_config)} 个 Newsletter 源")
-        newsletter_summaries, newsletter_links = fetch_newsletter_summaries(
-            newsletters_config
-        )
-    else:
-        print("警告: 没有配置任何 Newsletter")
-        newsletter_summaries = []
-        newsletter_links = []
 
-    # ========== 2. 获取 AI Builders 动态 ==========
-    print("\n" + "=" * 50)
-    print("AI Builders 动态获取")
-    print("=" * 50)
+    newsletter_summaries = []
+    newsletter_links = []
+    builders_digest = None
 
-    builders_digest = generate_builders_digest()
-    if builders_digest:
-        print("✓ Builders Digest 已生成")
-    else:
-        print("⚠ Builders Digest 未生成（查看上方日志了解原因）")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        # 提交两个并行任务
+        newsletter_future = executor.submit(
+            fetch_newsletter_summaries, newsletters_config
+        ) if newsletters_config else None
 
-    # ========== 3. 生成 Builder/播客推荐 ==========
+        builders_future = executor.submit(generate_builders_digest)
+
+        # 等待 Newsletter 结果
+        if newsletter_future:
+            print("\n[Newsletter] 正在获取和总结...")
+            try:
+                newsletter_summaries, newsletter_links = newsletter_future.result()
+                print(f"[Newsletter] 完成: {len(newsletter_summaries)} 个总结")
+            except Exception as e:
+                print(f"[Newsletter] 失败: {e}")
+        else:
+            print("警告: 没有配置任何 Newsletter")
+
+        # 等待 Builders Digest 结果
+        print("\n[Builders] 正在获取和总结...")
+        try:
+            builders_digest = builders_future.result()
+            if builders_digest:
+                print("[Builders] ✓ Builders Digest 已生成")
+            else:
+                print("[Builders] ⚠ Builders Digest 未生成")
+        except Exception as e:
+            print(f"[Builders] 失败: {e}")
+
+    # ========== 2. 生成 Builder/播客推荐 ==========
     print("\n" + "=" * 50)
     print("Builder/播客推荐")
     print("=" * 50)
 
     recommendations = generate_recommendations()
 
-    # ========== 4. 构建统一日报 ==========
+    # ========== 3. 构建统一日报 ==========
     print("\n" + "=" * 50)
     print("构建统一日报")
     print("=" * 50)
@@ -273,7 +288,7 @@ def main():
         f.write(f"# AI 日报 - {date_str}\n\n{unified_content}")
     print(f"统一日报: {output_file}")
 
-    # ========== 5. 生成多平台文章 ==========
+    # ========== 4. 生成多平台文章 ==========
     print("\n正在生成多平台文章...")
     article_gen = ArticleGenerator()
 
@@ -298,7 +313,7 @@ def main():
             f.write(wechat_content)
         print(f"  微信公众号文章: {wechat_file}")
 
-    # ========== 6. 生成封面图 ==========
+    # ========== 5. 生成封面图 ==========
     print("\n正在生成封面图...")
     image_gen = ImageGenerator()
 
@@ -318,7 +333,7 @@ def main():
 
     print("=" * 50)
 
-    # ========== 7. 发送邮件推送 ==========
+    # ========== 6. 发送邮件推送 ==========
     if Config.EMAIL_RECIPIENTS:
         print("\n" + "=" * 50)
         print("邮件推送")
