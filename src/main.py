@@ -240,9 +240,9 @@ def main():
 
     builders_digest = generate_builders_digest()
     if builders_digest:
-        print("Builders Digest 生成成功")
+        print("✓ Builders Digest 已生成")
     else:
-        print("没有新的 Builders 动态")
+        print("⚠ Builders Digest 未生成（查看上方日志了解原因）")
 
     # ========== 3. 生成 Builder/播客推荐 ==========
     print("\n" + "=" * 50)

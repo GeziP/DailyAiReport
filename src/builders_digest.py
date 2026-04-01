@@ -267,7 +267,7 @@ class BuildersDigestSummarizer:
 
     def __init__(self):
         http_client = httpx.Client(
-            timeout=httpx.Timeout(120.0, connect=30.0)
+            timeout=httpx.Timeout(300.0, connect=60.0)
         )
         self.client = OpenAI(
             api_key=Config.AI_API_KEY,
@@ -394,7 +394,7 @@ def generate_builders_digest() -> Optional[str]:
     data = fetcher.fetch()
 
     if not data:
-        print("无法获取 Builders 数据")
+        print("无法获取 Builders 数据（可能是 prepare-digest.js 执行失败）")
         return None
 
     original_stats = data.get("stats", {})
@@ -412,7 +412,7 @@ def generate_builders_digest() -> Optional[str]:
 
     # 检查是否有新内容
     if stats.get("xBuilders", 0) == 0 and stats.get("podcastEpisodes", 0) == 0:
-        print("没有新的 Builders 动态（已去重）")
+        print("没有新的 Builders 动态（过去一周已推送过）")
         return None
 
     # 生成摘要
@@ -430,6 +430,6 @@ def generate_builders_digest() -> Optional[str]:
         save_daily_history(new_tweet_urls, new_podcast_ids)
         print(f"  已保存去重历史记录")
     else:
-        print("Builders Digest 生成失败")
+        print("Builders Digest AI 总结失败（请检查超时设置或 API 配置）")
 
     return digest
