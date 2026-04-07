@@ -106,6 +106,7 @@ class AISummarizer:
 4. 用中文输出，英文术语首次出现时用括号标注"""
 
         # 不限制 max_tokens，让 AI 输出完整内容
+        try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
