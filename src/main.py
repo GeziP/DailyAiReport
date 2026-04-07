@@ -11,6 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
 from jinja2 import Environment, FileSystemLoader
+from openai import OpenAI
+import httpx
 
 from .config import Config
 from .email_client import EmailClient
@@ -23,6 +25,49 @@ from .email_sender import send_daily_summary
 from .recommender import generate_recommendations, RecommendedSource
 
 
+# 按主题整合所有 Newsletter 的提示词
+MERGE_SYSTEM_PROMPT = """你是一个 Newsletter 内容整理者。你的任务是将多个 Newsletter 的内容按主题合并整理。
+
+## 核心原则
+
+1. **按主题整合**：将所有 Newsletter 的内容按主题归类，不要按来源分开
+   - 例如：模型发布、产品动态、人员变动、行业观点、技术突破等
+   - 同一主题的内容放在一起，只标注来源名称
+
+2. **详细呈现**：每个观点、细节、引用都要完整保留
+   - 原文有100字就呈现100字
+   - 不要用"详见"、"等"这类缩写词
+
+3. **不做价值判断**：只呈现事实，不说"为什么重要"
+
+## 输出格式
+
+### 今日概览
+[一句话说明内容范围，列出2-3个核心主题]
+
+### 主要内容
+
+#### **[主题标题]**
+
+[详细呈现该主题的所有内容，引用用*斜体*]
+
+*来源：AINews、The AI Break*
+
+---
+
+#### **[主题标题]**
+
+[详细呈现该主题的所有内容...]
+
+*来源：Lenny's Newsletter*
+
+---
+
+### 参考来源
+
+[按 Newsletter 分组列出链接]"""
+
+
 def load_newsletters_config() -> list[dict]:
     """加载 Newsletter 配置"""
     with open(Config.NEWSLETTERS_CONFIG, "r", encoding="utf-8") as f:
@@ -32,6 +77,63 @@ def load_newsletters_config() -> list[dict]:
         nl for nl in config.get("newsletters", [])
         if nl.get("enabled", True)
     ]
+
+
+def merge_newsletter_summaries(summaries: list[dict]) -> Optional[str]:
+    """
+    将多个 Newsletter 总结按主题整合
+
+    Args:
+        summaries: 各 Newsletter 的总结列表
+
+    Returns:
+        按主题整合后的内容
+    """
+    if not summaries:
+        return None
+
+    # 合并所有总结内容
+    combined_content = "\n\n---\n\n".join([
+        f"## {s['name']}\n\n{s.get('summary', '（无内容）')}"
+        for s in summaries
+    ])
+
+    print("  正在按主题整合 Newsletter 内容...")
+
+    http_client = httpx.Client(
+        timeout=httpx.Timeout(300.0, connect=30.0)
+    )
+    client = OpenAI(
+        api_key=Config.AI_API_KEY,
+        base_url=Config.AI_BASE_URL,
+        http_client=http_client
+    )
+
+    user_prompt = f"""请将以下 Newsletter 内容按主题整合，不要按来源分开：
+
+---
+{combined_content}
+---
+
+要求：
+1. 按主题归类，同一主题的内容放在一起
+2. 详细呈现每个观点，不要精简
+3. 标注每个内容的来源名称
+4. 不要说明"为什么重要""""
+
+    try:
+        response = client.chat.completions.create(
+            model=Config.AI_MODEL,
+            messages=[
+                {"role": "system", "content": MERGE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Newsletter 整合失败: {e}")
+        return None
 
 
 def get_newsletter_name(sender: str, newsletters: list[dict]) -> str:
@@ -127,23 +229,30 @@ def fetch_newsletter_summaries(
 
 def build_unified_report(
     date_str: str,
-    newsletter_summaries: list[dict],
+    merged_newsletter: Optional[str],  # 已按主题整合的 Newsletter 内容
+    newsletter_links: list[dict],
     builders_digest: Optional[str],
     recommendations: Optional[List[RecommendedSource]]
 ) -> tuple[str, list[dict]]:
     """
     构建统一日报内容
 
+    Args:
+        merged_newsletter: 按主题整合后的 Newsletter 内容
+        newsletter_links: 所有 Newsletter 的链接
+        builders_digest: Builders Digest 内容
+        recommendations: 推荐内容
+
     Returns:
         (unified_content, all_links)
     """
     parts = []
-    all_links = []
+    all_links = newsletter_links.copy()
 
     # 今日概览
     overview_parts = []
-    if newsletter_summaries:
-        overview_parts.append(f"涉及 **{len(newsletter_summaries)} 个 Newsletter**")
+    if merged_newsletter:
+        overview_parts.append("AI Newsletter 精选")
     if builders_digest:
         overview_parts.append("**AI Builders 动态**")
     if recommendations:
@@ -153,18 +262,16 @@ def build_unified_report(
         overview = "、".join(overview_parts)
         parts.append(f"## 今日概览\n\n{overview}")
 
-    # Newsletter 精选
-    if newsletter_summaries:
+    # Newsletter 精选（已按主题整合）
+    if merged_newsletter:
         parts.append("\n## 一、AI Newsletter 精选\n")
-        for summary in newsletter_summaries:
-            parts.append(f"### {summary['name']}\n")
-            parts.append(summary.get('summary', '（无内容）'))
-            parts.append("\n")
-            if summary.get('links'):
-                parts.append("**相关链接：**\n")
-                for link in summary['links']:
-                    parts.append(f"- {link['title']}: {link['url']}\n")
-                    all_links.append(link)
+        parts.append(merged_newsletter)
+
+        # 链接单独处理
+        if newsletter_links:
+            parts.append("\n### Newsletter 链接汇总\n")
+            for link in newsletter_links[:20]:  # 限制链接数量避免太长
+                parts.append(f"- {link['title']}: {link['url']}\n")
 
     # Builders 动态
     if builders_digest:
@@ -259,21 +366,37 @@ def main():
         except Exception as e:
             print(f"[Builders] 失败: {e}")
 
-    # ========== 2. 生成 Builder/播客推荐 ==========
+    # ========== 2. 按主题整合 Newsletter 内容 ==========
+    merged_newsletter = None
+    if newsletter_summaries:
+        print("\n" + "=" * 50)
+        print("按主题整合 Newsletter 内容")
+        print("=" * 50)
+        merged_newsletter = merge_newsletter_summaries(newsletter_summaries)
+        if merged_newsletter:
+            print("Newsletter 内容已按主题整合")
+        else:
+            print("整合失败，使用原始分来源格式")
+            # 回退：使用原始分来源格式
+            merged_newsletter = "\n\n".join([
+                f"### {s['name']}\n{s.get('summary', '（无内容）')}"
+                for s in newsletter_summaries
+            ])
     print("\n" + "=" * 50)
     print("Builder/播客推荐")
     print("=" * 50)
 
     recommendations = generate_recommendations()
 
-    # ========== 3. 构建统一日报 ==========
+    # ========== 4. 构建统一日报 ==========
     print("\n" + "=" * 50)
     print("构建统一日报")
     print("=" * 50)
 
     unified_content, all_links = build_unified_report(
         date_str,
-        newsletter_summaries,
+        merged_newsletter,
+        newsletter_links,
         builders_digest,
         recommendations
     )
