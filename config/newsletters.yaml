@@ -17,14 +17,14 @@ newsletters:
     sender: "aivalley@mail.beehiiv.com"
     enabled: true
 
+  # Lenny's Newsletter - 产品和技术洞察
+  - name: "Lenny's Newsletter"
+    sender: "lenny+how-i-ai@substack.com"
+    enabled: true
+
   # ================================
   # 已禁用的 Newsletter
   # ================================
-
-  # Lenny's Newsletter - 产品和技术洞察（质量不稳定）
-  - name: "Lenny's Newsletter"
-    sender: "lenny+how-i-ai@substack.com"
-    enabled: false
 
   # Every - 产品设计和工具（质量不高）
   - name: "Every"
