@@ -36,7 +36,7 @@ jobs:
         timeout-minutes: 5
         run: |
           mkdir -p ~/.claude/skills
-          git clone https://github.com/zarazhangrui/follow-builders.git ~/.claude/skills/follow-builders
+          git clone https://github.com/GeziP/follow-builders.git ~/.claude/skills/follow-builders
           cd ~/.claude/skills/follow-builders/scripts && npm install
 
       - name: Merge custom follow-builders sources
