@@ -2,6 +2,11 @@
 # 在此添加你订阅的 Newsletter，设置 enabled: false 可临时禁用
 
 newsletters:
+  # AINews - swyx 的 AI 新闻
+  - name: "AINews"
+    sender: "swyx+ainews@substack.com"
+    enabled: true
+
   # The AI Break - AI 新闻和趋势
   - name: "The AI Break"
     sender: "theaibreak@substack.com"
