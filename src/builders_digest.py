@@ -2,128 +2,15 @@
 
 import json
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, Set, List, Dict
+from typing import Optional, List
 from dataclasses import dataclass
 
 from openai import OpenAI
 import httpx
 
 from .config import Config
-
-
-# 去重历史文件
-DEDUP_HISTORY_DIR = Config.BASE_DIR / "data" / "dedup_history"
-
-
-def load_weekly_history() -> Dict[str, Set[str]]:
-    """
-    加载过去一周的去重历史
-
-    Returns:
-        {"tweets": set of URLs, "podcasts": set of episode IDs}
-    """
-    history = {"tweets": set(), "podcasts": set()}
-
-    if not DEDUP_HISTORY_DIR.exists():
-        return history
-
-    # 读取过去 7 天的历史文件
-    for i in range(7):
-        date = datetime.now() - timedelta(days=i)
-        history_file = DEDUP_HISTORY_DIR / f"{date.strftime('%Y-%m-%d')}.json"
-
-        if history_file.exists():
-            try:
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    history["tweets"].update(data.get("tweets", []))
-                    history["podcasts"].update(data.get("podcasts", []))
-            except Exception:
-                pass
-
-    return history
-
-
-def save_daily_history(tweets: List[str], podcasts: List[str]) -> None:
-    """
-    保存当天的去重历史
-
-    Args:
-        tweets: 当天推送的 tweet URL 列表
-        podcasts: 当天推送的 podcast episode ID 列表
-    """
-    DEDUP_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-
-    today = datetime.now().strftime('%Y-%m-%d')
-    history_file = DEDUP_HISTORY_DIR / f"{today}.json"
-
-    data = {
-        "tweets": tweets,
-        "podcasts": podcasts,
-        "generated_at": datetime.now().isoformat()
-    }
-
-    with open(history_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def filter_duplicates(data: dict) -> dict:
-    """
-    过滤过去一周已推送的内容
-
-    Args:
-        data: 从 prepare-digest.js 获取的原始数据
-
-    Returns:
-        过滤后的数据
-    """
-    history = load_weekly_history()
-
-    # 过滤 X/Twitter 内容
-    filtered_x = []
-    new_tweet_urls = []
-
-    for builder in data.get("x", []):
-        filtered_tweets = []
-        for tweet in builder.get("tweets", []):
-            url = tweet.get("url", "")
-            if url and url not in history["tweets"]:
-                filtered_tweets.append(tweet)
-                new_tweet_urls.append(url)
-
-        if filtered_tweets:
-            filtered_builder = {**builder, "tweets": filtered_tweets}
-            filtered_x.append(filtered_builder)
-
-    # 过滤播客内容
-    filtered_podcasts = []
-    new_podcast_ids = []
-
-    for podcast in data.get("podcasts", []):
-        # 用 URL 作为唯一标识
-        url = podcast.get("url", "")
-        episode_id = url  # 或提取 video ID
-
-        if episode_id and episode_id not in history["podcasts"]:
-            filtered_podcasts.append(podcast)
-            new_podcast_ids.append(episode_id)
-
-    # 返回过滤后的数据
-    filtered_data = {
-        **data,
-        "x": filtered_x,
-        "podcasts": filtered_podcasts,
-        "stats": {
-            **data.get("stats", {}),
-            "xBuilders": len(filtered_x),
-            "totalTweets": sum(len(b.get("tweets", [])) for b in filtered_x),
-            "podcastEpisodes": len(filtered_podcasts),
-        }
-    }
-
-    return filtered_data, new_tweet_urls, new_podcast_ids
 
 
 # Builders Digest 系统提示词
@@ -387,7 +274,7 @@ class BuildersDigestSummarizer:
 
 def generate_builders_digest() -> Optional[str]:
     """
-    生成 AI Builders Digest（自动去重过去一周内容）
+    生成 AI Builders Digest
 
     Returns:
         Markdown 格式的摘要，失败返回 None
@@ -402,38 +289,26 @@ def generate_builders_digest() -> Optional[str]:
         print("无法获取 Builders 数据（可能是 prepare-digest.js 执行失败）")
         return None
 
-    original_stats = data.get("stats", {})
-    print(f"  原始数据: {original_stats.get('xBuilders', 0)} 个 builders, "
-          f"{original_stats.get('totalTweets', 0)} 条推文, "
-          f"{original_stats.get('podcastEpisodes', 0)} 个播客")
-
-    # 去重：过滤过去一周已推送的内容
-    filtered_data, new_tweet_urls, new_podcast_ids = filter_duplicates(data)
-
-    stats = filtered_data.get("stats", {})
-    print(f"  去重后: {stats.get('xBuilders', 0)} 个 builders, "
+    stats = data.get("stats", {})
+    print(f"  数据: {stats.get('xBuilders', 0)} 个 builders, "
           f"{stats.get('totalTweets', 0)} 条推文, "
           f"{stats.get('podcastEpisodes', 0)} 个播客")
 
-    # 检查是否有新内容
+    # 检查是否有内容
     if stats.get("xBuilders", 0) == 0 and stats.get("podcastEpisodes", 0) == 0:
-        print("没有新的 Builders 动态（过去一周已推送过）")
+        print("没有 Builders 动态")
         return None
 
     # 生成摘要
     summarizer = BuildersDigestSummarizer()
 
-    x_content = summarizer.summarize_x(filtered_data.get("x", []))
-    podcast_content = summarizer.summarize_podcasts(filtered_data.get("podcasts", []))
+    x_content = summarizer.summarize_x(data.get("x", []))
+    podcast_content = summarizer.summarize_podcasts(data.get("podcasts", []))
 
     digest = summarizer.generate_digest(x_content, podcast_content, stats)
 
     if digest:
         print("Builders Digest 生成成功")
-
-        # 保存当天历史（用于后续去重）
-        save_daily_history(new_tweet_urls, new_podcast_ids)
-        print(f"  已保存去重历史记录")
     else:
         print("Builders Digest AI 总结失败（请检查超时设置或 API 配置）")
 
