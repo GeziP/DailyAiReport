@@ -119,7 +119,8 @@ def merge_newsletter_summaries(summaries: list[dict]) -> Optional[str]:
 1. 按主题归类，同一主题的内容放在一起
 2. 详细呈现每个观点，不要精简
 3. 标注每个内容的来源名称
-4. 不要说明"为什么重要""""
+4. 不要说明"为什么重要"
+""""
 
     try:
         response = client.chat.completions.create(
