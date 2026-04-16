@@ -108,7 +108,10 @@ jobs:
           IMAGE_API_KEY: ${{ secrets.IMAGE_API_KEY }}
           IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}
           IMAGE_MODEL: ${{ secrets.IMAGE_MODEL }}
+          # Manus API 配图（微信公众号章节配图）   ← 添加这两行
+          MANUS_API_KEY: ${{ secrets.MANUS_API_KEY }}
           # 向后兼容（旧 Secrets 名称）
+
           QQ_EMAIL: ${{ secrets.QQ_EMAIL }}
           QQ_EMAIL_AUTH_CODE: ${{ secrets.QQ_EMAIL_AUTH_CODE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
