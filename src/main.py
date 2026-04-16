@@ -474,6 +474,10 @@ def main():
             with open(wechat_file, "w", encoding="utf-8") as f:
                 f.write(enriched_wechat)
             print(f"  微信公众号配图完成: {wechat_file}")
+        except ValueError as e:
+            # 通常是 MANUS_API_KEY 未配置
+            print(f"  微信公众号配图跳过（{e}）")
+            print("  请在 GitHub Secrets 中配置 MANUS_API_KEY")
         except Exception as e:
             print(f"  微信公众号配图失败（不影响其他输出）: {e}")
     else:

@@ -1,105 +1,38 @@
-"""微信公众号日报配图模块
+"""微信公众号日报配图模块（Manus API 版）
 
 解析微信公众号 Markdown 文章的章节结构，
-为每个主要章节生成配图，并将图片引用插入到对应位置。
+通过 Manus API 为每个主要章节生成配图，
+并将图片引用插入到对应位置。
+
+Manus API 调用流程：
+1. POST /v2/file.upload  → 获取 upload_url 和 file_id
+2. PUT  <upload_url>     → 上传 wechat.md 文件内容
+3. POST /v2/task.create  → 创建配图任务，附带 file_id
+4. GET  /v2/task.listMessages (轮询) → 等待 stopped 状态
+5. 从 assistant_message.attachments 下载图片文件
 """
 
 import re
-import base64
+import time
+import json
+import os
 from typing import Optional
 from pathlib import Path
+
 import httpx
-from openai import OpenAI
-
-from .config import Config
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 配图提示词模板
+# Manus API 常量
 # ──────────────────────────────────────────────────────────────────────────────
 
-# 通用 AI 科技风格基底
-_BASE_STYLE = (
-    "Minimalist flat-design illustration, clean lines, "
-    "soft gradient background in deep blue and purple tones, "
-    "no text, no watermark, no UI elements, "
-    "suitable for WeChat Official Account article."
-)
+MANUS_API_BASE = "https://api.manus.ai"
+MANUS_API_KEY_ENV = "MANUS_API_KEY"
 
-# 各章节专属提示词（按章节关键词匹配）
-SECTION_IMAGE_PROMPTS: dict[str, str] = {
-    # 今日概览 / 导语
-    "overview": (
-        "Abstract technology landscape: glowing neural network nodes "
-        "connected by light beams, floating data particles, "
-        "deep space background. " + _BASE_STYLE
-    ),
-    # AI Newsletter 精选
-    "newsletter": (
-        "Open digital newspaper or magazine floating in cyberspace, "
-        "pages made of glowing circuits, AI chip in the center, "
-        "soft blue light rays. " + _BASE_STYLE
-    ),
-    # AI Builders 动态
-    "builders": (
-        "Group of abstract human silhouettes building a glowing AI structure, "
-        "gears and code fragments orbiting around them, "
-        "warm amber and blue gradient. " + _BASE_STYLE
-    ),
-    # 新发现的优质来源 / 推荐
-    "recommendations": (
-        "Glowing compass pointing toward a constellation of stars, "
-        "each star representing a knowledge source, "
-        "teal and gold color palette. " + _BASE_STYLE
-    ),
-    # 模型发布 / 技术突破
-    "model": (
-        "Futuristic AI brain made of interconnected hexagons, "
-        "electric sparks, deep blue and cyan gradient. " + _BASE_STYLE
-    ),
-    # 产品动态 / 商业
-    "product": (
-        "Abstract product launch: rocket ascending from a circuit board, "
-        "colorful light trails, purple and orange gradient. " + _BASE_STYLE
-    ),
-    # 行业观点 / 分析
-    "insight": (
-        "Magnifying glass over a glowing data landscape, "
-        "bar charts and trend lines made of light, "
-        "navy blue and silver tones. " + _BASE_STYLE
-    ),
-    # 安全 / 风险
-    "safety": (
-        "Digital shield with lock icon, surrounded by binary code rain, "
-        "red and blue warning lights, dark background. " + _BASE_STYLE
-    ),
-    # 默认通用
-    "default": (
-        "Abstract AI technology scene: floating geometric shapes, "
-        "glowing data streams, soft gradient background. " + _BASE_STYLE
-    ),
-}
-
-# 章节关键词 → 提示词类别映射
-_KEYWORD_MAP: list[tuple[list[str], str]] = [
-    (["概览", "导语", "overview", "introduction"], "overview"),
-    (["newsletter", "资讯", "精选", "邮件"], "newsletter"),
-    (["builder", "动态", "创业", "开发者", "builders"], "builders"),
-    (["推荐", "来源", "发现", "recommendation"], "recommendations"),
-    (["模型", "model", "发布", "技术", "突破", "research"], "model"),
-    (["产品", "product", "商业", "融资", "投资"], "product"),
-    (["观点", "分析", "洞察", "insight", "opinion"], "insight"),
-    (["安全", "风险", "safety", "risk", "警示"], "safety"),
-]
-
-
-def _select_prompt_for_section(section_title: str) -> str:
-    """根据章节标题选择最合适的配图提示词"""
-    title_lower = section_title.lower()
-    for keywords, category in _KEYWORD_MAP:
-        if any(kw in title_lower for kw in keywords):
-            return SECTION_IMAGE_PROMPTS[category]
-    return SECTION_IMAGE_PROMPTS["default"]
+# 轮询间隔（秒）
+POLL_INTERVAL = 15
+# 最大等待时间（秒）：20 分钟
+MAX_WAIT_SECONDS = 1200
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -116,12 +49,11 @@ def _extract_sections(markdown_content: str) -> list[dict]:
     sections = []
     lines = markdown_content.split("\n")
     for i, line in enumerate(lines):
-        # 匹配 ## 或 ### 标题（排除 #### 及更深层级）
         m = re.match(r"^(#{2,3})\s+(.+)$", line)
         if m:
             level = len(m.group(1))
             title = m.group(2).strip()
-            # 跳过"参考来源"章节（通常在末尾，不需要配图）
+            # 跳过"参考来源"章节
             if any(kw in title for kw in ["参考来源", "reference", "来源"]):
                 continue
             sections.append({
@@ -133,63 +65,183 @@ def _extract_sections(markdown_content: str) -> list[dict]:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 图片生成
+# Manus API 客户端
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ManusAPIError(Exception):
+    pass
+
+
+class ManusClient:
+    """轻量级 Manus API 客户端"""
+
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.headers = {
+            "x-manus-api-key": api_key,
+            "Content-Type": "application/json",
+        }
+        self.http = httpx.Client(
+            timeout=httpx.Timeout(60.0, connect=15.0)
+        )
+
+    def _post(self, path: str, body: dict) -> dict:
+        url = f"{MANUS_API_BASE}{path}"
+        resp = self.http.post(url, headers=self.headers, json=body)
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("ok"):
+            raise ManusAPIError(f"API error: {data.get('error', data)}")
+        return data
+
+    def _get(self, path: str, params: dict | None = None) -> dict:
+        url = f"{MANUS_API_BASE}{path}"
+        resp = self.http.get(url, headers=self.headers, params=params or {})
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("ok"):
+            raise ManusAPIError(f"API error: {data.get('error', data)}")
+        return data
+
+    def upload_file(self, filename: str, content: bytes) -> str:
+        """上传文件，返回 file_id"""
+        # 第一步：创建文件记录，获取 upload_url
+        data = self._post("/v2/file.upload", {"filename": filename})
+        file_id = data["file"]["id"]
+        upload_url = data["upload_url"]
+
+        # 第二步：PUT 上传文件内容
+        put_resp = self.http.put(
+            upload_url,
+            content=content,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        put_resp.raise_for_status()
+
+        print(f"  [Manus] 文件已上传: {filename} (id={file_id})")
+        return file_id
+
+    def create_task(self, prompt: str, file_id: str | None = None) -> str:
+        """创建任务，返回 task_id"""
+        content: list[dict] = [{"type": "text", "text": prompt}]
+        if file_id:
+            content.append({"type": "file", "file_id": file_id})
+
+        body = {
+            "message": {
+                "content": content,
+            },
+            "locale": "zh-CN",
+            "interactive_mode": False,
+            "hide_in_task_list": True,
+        }
+        data = self._post("/v2/task.create", body)
+        task_id = data["task_id"]
+        print(f"  [Manus] 任务已创建: {task_id}")
+        return task_id
+
+    def wait_for_completion(self, task_id: str) -> list[dict]:
+        """
+        轮询任务直到完成，返回所有 assistant_message 中的 attachments。
+        """
+        elapsed = 0
+        while elapsed < MAX_WAIT_SECONDS:
+            time.sleep(POLL_INTERVAL)
+            elapsed += POLL_INTERVAL
+
+            data = self._get(
+                "/v2/task.listMessages",
+                {"task_id": task_id, "order": "desc", "limit": 50},
+            )
+            messages = data.get("messages", [])
+
+            # 查找最新的 status_update
+            for msg in messages:
+                if msg.get("type") == "status_update":
+                    status = msg["status_update"]["agent_status"]
+                    brief = msg["status_update"].get("brief", "")
+                    print(f"  [Manus] 状态: {status} — {brief}")
+
+                    if status == "stopped":
+                        # 收集所有 assistant_message 的附件
+                        attachments = []
+                        for m in messages:
+                            if m.get("type") == "assistant_message":
+                                attachments.extend(
+                                    m["assistant_message"].get("attachments", [])
+                                )
+                        return attachments
+
+                    elif status == "error":
+                        for m in messages:
+                            if m.get("type") == "error_message":
+                                raise ManusAPIError(
+                                    f"任务失败: {m['error_message']['content']}"
+                                )
+                        raise ManusAPIError("任务失败（未知错误）")
+
+                    break  # 只看最新的 status_update
+
+            print(f"  [Manus] 等待中… ({elapsed}s / {MAX_WAIT_SECONDS}s)")
+
+        raise ManusAPIError(f"任务超时（超过 {MAX_WAIT_SECONDS} 秒）")
+
+    def download_file(self, url: str) -> bytes:
+        """下载文件内容"""
+        resp = self.http.get(url, timeout=60.0)
+        resp.raise_for_status()
+        return resp.content
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 配图器
 # ──────────────────────────────────────────────────────────────────────────────
 
 class WeChatImageInserter:
     """
-    微信公众号日报配图器。
+    微信公众号日报配图器（Manus API 版）。
 
     职责：
-    1. 解析微信公众号 Markdown 文章的章节结构
-    2. 为每个主要章节（## 级别）生成一张配图
-    3. 将图片以 Markdown 语法插入到章节标题下方
+    1. 将微信公众号 Markdown 文章上传给 Manus
+    2. 让 Manus 为每个主要章节生成配图
+    3. 下载 Manus 生成的图片并保存到 output 目录
+    4. 将图片以 Markdown 语法插入到章节标题下方
     """
 
     def __init__(self):
-        api_key = Config.IMAGE_API_KEY or Config.AI_API_KEY
-        base_url = Config.IMAGE_BASE_URL or Config.AI_BASE_URL
+        api_key = os.environ.get(MANUS_API_KEY_ENV, "")
+        if not api_key:
+            raise ValueError(
+                f"未找到 Manus API Key，请设置环境变量 {MANUS_API_KEY_ENV}"
+            )
+        self.client = ManusClient(api_key)
 
-        http_client = httpx.Client(
-            timeout=httpx.Timeout(120.0, connect=30.0)
-        )
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url=base_url,
-            http_client=http_client,
-        )
-        self.model = Config.IMAGE_MODEL or "dall-e-3"
+    def _build_prompt(self, wechat_content: str, date_str: str) -> str:
+        """
+        构造发给 Manus 的配图任务提示词。
 
-    def _generate_image(
-        self,
-        prompt: str,
-        section_title: str,
-    ) -> Optional[bytes]:
-        """调用图片 API 生成一张图片，返回字节数据。"""
-        max_retries = 2
-        for attempt in range(max_retries):
-            try:
-                response = self.client.images.generate(
-                    model=self.model,
-                    prompt=prompt,
-                    size="1792x1024",   # 微信公众号横版配图
-                    quality="standard",
-                    n=1,
-                    response_format="b64_json",
-                )
-                if response.data and response.data[0].b64_json:
-                    return base64.b64decode(response.data[0].b64_json)
-                return None
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    print(
-                        f"  [配图] 章节「{section_title}」生成失败，重试 "
-                        f"({attempt + 1}/{max_retries})…"
-                    )
-                    continue
-                print(f"  [配图] 章节「{section_title}」生成失败: {type(e).__name__}: {e}")
-                return None
-        return None
+        Manus 将读取附件中的微信公众号文章，
+        识别各主要章节，并为每个章节生成一张横版配图。
+        """
+        sections = _extract_sections(wechat_content)
+        main_sections = [s for s in sections if s["level"] == 2]
+        section_list = "\n".join(
+            f"  {i+1}. {s['title']}" for i, s in enumerate(main_sections)
+        )
+
+        return f"""我附上了一篇 {date_str} 的 AI 日报微信公众号文章（Markdown 格式）。
+
+请为以下 {len(main_sections)} 个主要章节各生成一张配图：
+
+{section_list}
+
+配图要求：
+- 风格：简洁的科技感扁平插画，深蓝/紫色渐变背景，无文字水印
+- 尺寸：横版（宽:高 ≈ 16:9），适合微信公众号文章插图
+- 每张图体现该章节的主题（如"AI 资讯精选"用数字杂志元素，"Builders 动态"用人物构建 AI 的场景等）
+- 图片文件按章节顺序命名，如 section-01.png, section-02.png …
+
+请生成所有配图并作为附件返回。"""
 
     def generate_section_images(
         self,
@@ -198,47 +250,81 @@ class WeChatImageInserter:
         output_dir: Path,
     ) -> dict[int, Path]:
         """
-        为微信公众号文章的各主要章节生成配图。
-
-        Args:
-            wechat_content: 微信公众号 Markdown 文章内容
-            date_str: 日期字符串（用于文件命名）
-            output_dir: 图片保存目录
+        通过 Manus API 为微信公众号文章的各主要章节生成配图。
 
         Returns:
             {line_index: image_path} 映射
         """
         sections = _extract_sections(wechat_content)
-        # 只为 ## 级别（level=2）的主要章节配图，避免图片过多
         main_sections = [s for s in sections if s["level"] == 2]
 
         if not main_sections:
             print("  [配图] 未找到主要章节（## 级别），跳过配图")
             return {}
 
-        print(f"  [配图] 发现 {len(main_sections)} 个主要章节，开始生成配图…")
-        result: dict[int, Path] = {}
+        print(f"  [配图] 发现 {len(main_sections)} 个主要章节，调用 Manus 生成配图…")
 
-        for idx, section in enumerate(main_sections, start=1):
+        # 1. 上传 wechat.md 文件
+        md_filename = f"{date_str}-wechat.md"
+        file_id = self.client.upload_file(
+            md_filename,
+            wechat_content.encode("utf-8"),
+        )
+
+        # 2. 创建配图任务
+        prompt = self._build_prompt(wechat_content, date_str)
+        task_id = self.client.create_task(prompt, file_id=file_id)
+
+        # 3. 等待任务完成
+        print(f"  [配图] 等待 Manus 完成配图（最多 {MAX_WAIT_SECONDS // 60} 分钟）…")
+        attachments = self.client.wait_for_completion(task_id)
+
+        # 4. 筛选图片附件
+        image_attachments = [
+            a for a in attachments
+            if a.get("type") == "image" or
+               (a.get("content_type", "").startswith("image/")) or
+               (a.get("filename", "").lower().endswith((".png", ".jpg", ".jpeg", ".webp")))
+        ]
+
+        if not image_attachments:
+            print("  [配图] Manus 未返回图片附件")
+            return {}
+
+        print(f"  [配图] Manus 返回 {len(image_attachments)} 张图片")
+
+        # 5. 下载并保存图片，按顺序与章节对应
+        result: dict[int, Path] = {}
+        for idx, (section, attachment) in enumerate(
+            zip(main_sections, image_attachments), start=1
+        ):
             title = section["title"]
             line_index = section["line_index"]
+            url = attachment.get("url", "")
 
-            print(f"  [配图] ({idx}/{len(main_sections)}) 章节：{title}")
+            if not url:
+                print(f"    ✗ 章节「{title}」无图片 URL，跳过")
+                continue
 
-            prompt = _select_prompt_for_section(title)
-            image_data = self._generate_image(prompt, title)
+            try:
+                image_data = self.client.download_file(url)
+                # 推断扩展名
+                orig_name = attachment.get("filename", "")
+                ext = Path(orig_name).suffix if orig_name else ".png"
+                if not ext:
+                    ext = ".png"
 
-            if image_data:
-                # 文件名：日期-wechat-section-序号.png
                 safe_title = re.sub(r"[^\w\u4e00-\u9fff]", "-", title)[:20]
-                filename = f"{date_str}-wechat-section-{idx:02d}-{safe_title}.png"
+                filename = f"{date_str}-wechat-section-{idx:02d}-{safe_title}{ext}"
                 image_path = output_dir / filename
+
                 with open(image_path, "wb") as f:
                     f.write(image_data)
+
                 result[line_index] = image_path
                 print(f"    ✓ 已保存: {filename}")
-            else:
-                print(f"    ✗ 配图失败，跳过该章节")
+            except Exception as e:
+                print(f"    ✗ 章节「{title}」图片下载失败: {e}")
 
         return result
 
@@ -250,17 +336,6 @@ class WeChatImageInserter:
     ) -> str:
         """
         将配图以 Markdown 语法插入到对应章节标题下方。
-
-        图片路径使用相对路径（相对于 output 目录），
-        便于 Artifact 下载后直接使用。
-
-        Args:
-            wechat_content: 原始微信公众号 Markdown 内容
-            image_map: {line_index: image_path}
-            output_dir: 输出目录（用于计算相对路径）
-
-        Returns:
-            插入图片后的 Markdown 内容
         """
         if not image_map:
             return wechat_content
@@ -269,15 +344,12 @@ class WeChatImageInserter:
         # 从后往前插入，避免行号偏移
         for line_index in sorted(image_map.keys(), reverse=True):
             image_path = image_map[line_index]
-            # 使用相对路径（仅文件名），因为图片与 md 文件在同一 output 目录
             rel_path = f"./{image_path.name}"
-            # 在标题行之后插入：空行 + 图片 + 空行（确保 Markdown 渲染正确）
             insert_lines = [
                 "",
                 f"![配图]({rel_path})",
                 "",
             ]
-            # 插入到标题行的下一行（如果下一行已是空行，则跳过空行再插入）
             insert_pos = line_index + 1
             # 跳过已有的空行，避免多余空行
             while insert_pos < len(lines) and lines[insert_pos].strip() == "":
@@ -293,7 +365,7 @@ class WeChatImageInserter:
         output_dir: Path,
     ) -> str:
         """
-        完整处理流程：生成配图并插入到微信公众号文章中。
+        完整处理流程：通过 Manus 生成配图并插入到微信公众号文章中。
 
         Args:
             wechat_content: 原始微信公众号 Markdown 文章内容
@@ -303,7 +375,7 @@ class WeChatImageInserter:
         Returns:
             插入配图后的 Markdown 内容（失败时返回原始内容）
         """
-        print("\n[配图] 开始为微信公众号日报配图…")
+        print("\n[配图] 开始通过 Manus 为微信公众号日报配图…")
 
         try:
             image_map = self.generate_section_images(
@@ -318,9 +390,7 @@ class WeChatImageInserter:
                 wechat_content, image_map, output_dir
             )
 
-            print(
-                f"[配图] 完成，共插入 {len(image_map)} 张配图"
-            )
+            print(f"[配图] 完成，共插入 {len(image_map)} 张配图")
             return enriched_content
 
         except Exception as e:
