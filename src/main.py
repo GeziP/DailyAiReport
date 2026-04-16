@@ -21,6 +21,7 @@ from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
 from .image_generator import ImageGenerator
 from .wechat_image_inserter import WeChatImageInserter
+from .wechat_publisher import WeChatPublisher, markdown_to_wechat_html
 from .builders_digest import generate_builders_digest
 from .email_sender import send_daily_summary
 from .recommender import generate_recommendations, RecommendedSource
@@ -485,6 +486,63 @@ def main():
 
     print("=" * 50)
 
+    # ========== 5c. 将微信公众号日报发布为草稿 ==========
+    print("\n" + "=" * 50)
+    print("微信公众号草稿发布")
+    print("=" * 50)
+
+    if wechat_file and wechat_file.exists() and Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET:
+        try:
+            publisher = WeChatPublisher()
+            with open(wechat_file, "r", encoding="utf-8") as f:
+                wechat_md = f.read()
+
+            # 找封面图
+            cover_candidates = list(Config.OUTPUT_DIR.glob(f"{date_str}-wechat-cover.*"))
+            cover_path = cover_candidates[0] if cover_candidates else None
+
+            draft_media_id = publisher.publish_to_draft(
+                markdown_content=wechat_md,
+                date_str=date_str,
+                output_dir=Config.OUTPUT_DIR,
+                cover_image_path=cover_path,
+            )
+
+            if draft_media_id:
+                # 同时保存一份 HTML 版本供参考
+                html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
+                from .wechat_publisher import markdown_to_wechat_html
+                html_content = markdown_to_wechat_html(wechat_md)
+                with open(html_file, "w", encoding="utf-8") as f:
+                    f.write(f"""<!DOCTYPE html>
+<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><title>微信公众号日报 {date_str}</title></head>
+<body>{html_content}</body></html>""")
+                print(f"  HTML 预览已保存: {html_file}")
+        except ValueError as e:
+            print(f"  微信草稿发布跳过（{e}）")
+        except Exception as e:
+            print(f"  微信草稿发布失败（不影响其他输出）: {e}")
+    else:
+        if not (Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET):
+            # 即使不发布草稿，也生成 HTML 预览
+            if wechat_file and wechat_file.exists():
+                try:
+                    with open(wechat_file, "r", encoding="utf-8") as f:
+                        wechat_md = f.read()
+                    html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
+                    html_content = markdown_to_wechat_html(wechat_md)
+                    with open(html_file, "w", encoding="utf-8") as f:
+                        f.write(f"""<!DOCTYPE html>
+<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><title>微信公众号日报 {date_str}</title></head>
+<body>{html_content}</body></html>""")
+                    print(f"  微信公众号 HTML 预览已生成（未配置 WECHAT_APP_ID，跳过发布草稿）: {html_file}")
+                except Exception as e:
+                    print(f"  HTML 预览生成失败: {e}")
+        else:
+            print("  微信公众号文章不存在，跳过草稿发布")
+
+    print("=" * 50)
+
     # ========== 6. 发送邮件推送 ==========
     if Config.EMAIL_RECIPIENTS:
         print("\n" + "=" * 50)
@@ -498,6 +556,10 @@ def main():
             attachments.append(xhs_file)
         if wechat_file and wechat_file.exists():
             attachments.append(wechat_file)
+        # 附上微信公众号 HTML 预览文件（如果存在）
+        html_preview = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
+        if html_preview.exists():
+            attachments.append(html_preview)
 
         send_daily_summary(
             date_str=date_str,
