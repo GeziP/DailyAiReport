@@ -241,11 +241,45 @@ class WeChatClient:
     # ── access_token ──────────────────────────────────────────────────────────
 
     def get_access_token(self) -> str:
-        """获取 access_token，自动缓存复用"""
+        """获取 access_token，优先使用稳定版接口（无需 IP 白名单）"""
         global _TOKEN_CACHE
         if _TOKEN_CACHE["token"] and time.time() < _TOKEN_CACHE["expires_at"] - 60:
             return _TOKEN_CACHE["token"]
 
+        # 优先尝试稳定版接口（POST /cgi-bin/stable_token）
+        # 稳定版接口不受 IP 白名单限制，适合 GitHub Actions 等动态 IP 场景
+        token, expires_in = self._get_stable_token()
+        if not token:
+            # 降级到普通接口（需要 IP 白名单）
+            token, expires_in = self._get_legacy_token()
+
+        _TOKEN_CACHE["token"] = token
+        _TOKEN_CACHE["expires_at"] = time.time() + expires_in
+        print(f"  [微信] access_token 已获取（有效期 {expires_in}s）")
+        return token
+
+    def _get_stable_token(self) -> tuple[str, int]:
+        """稳定版接口获取 access_token（不需要 IP 白名单）"""
+        try:
+            url = f"{WECHAT_API_BASE}/stable_token"
+            resp = self.http.post(url, json={
+                "grant_type": "client_credential",
+                "appid": self.app_id,
+                "secret": self.app_secret,
+                "force_refresh": False,
+            })
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("errcode", 0) == 0 and data.get("access_token"):
+                print("  [微信] 使用稳定版接口获取 access_token（无需 IP 白名单）")
+                return data["access_token"], data.get("expires_in", 7200)
+            print(f"  [微信] 稳定版接口返回错误: {data.get('errcode')} {data.get('errmsg')}，降级到普通接口")
+        except Exception as e:
+            print(f"  [微信] 稳定版接口调用失败: {e}，降级到普通接口")
+        return "", 0
+
+    def _get_legacy_token(self) -> tuple[str, int]:
+        """普通接口获取 access_token（需要 IP 白名单）"""
         url = f"{WECHAT_API_BASE}/token"
         resp = self.http.get(url, params={
             "grant_type": "client_credential",
@@ -254,18 +288,11 @@ class WeChatClient:
         })
         resp.raise_for_status()
         data = resp.json()
-
         if "errcode" in data and data["errcode"] != 0:
             raise WeChatAPIError(
                 f"获取 access_token 失败: errcode={data['errcode']} errmsg={data.get('errmsg')}"
             )
-
-        token = data["access_token"]
-        expires_in = data.get("expires_in", 7200)
-        _TOKEN_CACHE["token"] = token
-        _TOKEN_CACHE["expires_at"] = time.time() + expires_in
-        print(f"  [微信] access_token 已获取（有效期 {expires_in}s）")
-        return token
+        return data["access_token"], data.get("expires_in", 7200)
 
     # ── 上传正文图片（uploadimg）────────────────────────────────────────────────
 

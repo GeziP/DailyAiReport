@@ -491,55 +491,56 @@ def main():
     print("微信公众号草稿发布")
     print("=" * 50)
 
-    if wechat_file and wechat_file.exists() and Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET:
+    if wechat_file and wechat_file.exists():
+        with open(wechat_file, "r", encoding="utf-8") as f:
+            wechat_md = f.read()
+
+        # 无论是否发布草稿，先生成 HTML 预览（可直接复制到公众号编辑器）
+        html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
         try:
-            publisher = WeChatPublisher()
-            with open(wechat_file, "r", encoding="utf-8") as f:
-                wechat_md = f.read()
-
-            # 找封面图
-            cover_candidates = list(Config.OUTPUT_DIR.glob(f"{date_str}-wechat-cover.*"))
-            cover_path = cover_candidates[0] if cover_candidates else None
-
-            draft_media_id = publisher.publish_to_draft(
-                markdown_content=wechat_md,
-                date_str=date_str,
-                output_dir=Config.OUTPUT_DIR,
-                cover_image_path=cover_path,
-            )
-
-            if draft_media_id:
-                # 同时保存一份 HTML 版本供参考
-                html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
-                from .wechat_publisher import markdown_to_wechat_html
-                html_content = markdown_to_wechat_html(wechat_md)
-                with open(html_file, "w", encoding="utf-8") as f:
-                    f.write(f"""<!DOCTYPE html>
-<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><title>微信公众号日报 {date_str}</title></head>
-<body>{html_content}</body></html>""")
-                print(f"  HTML 预览已保存: {html_file}")
-        except ValueError as e:
-            print(f"  微信草稿发布跳过（{e}）")
+            html_content = markdown_to_wechat_html(wechat_md)
+            with open(html_file, "w", encoding="utf-8") as f:
+                f.write(f"""<!DOCTYPE html>
+<html lang=\"zh-CN\"><head><meta charset=\"utf-8\">
+<title>微信公众号日报 {date_str}</title>
+<style>body{{margin:0;padding:20px;background:#f5f5f5;}} .preview-tip{{background:#fff3cd;border:1px solid #ffc107;padding:12px 16px;border-radius:4px;margin-bottom:20px;font-size:14px;color:#856404;}}</style>
+</head>
+<body>
+<div class=\"preview-tip\">⚠️ 这是微信公众号文章预览。如需手动发布，请在公众号后台编辑器中粘贴以下 HTML 内容。</div>
+{html_content}
+</body></html>""")
+            print(f"  微信公众号 HTML 预览已生成: {html_file}")
         except Exception as e:
-            print(f"  微信草稿发布失败（不影响其他输出）: {e}")
-    else:
-        if not (Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET):
-            # 即使不发布草稿，也生成 HTML 预览
-            if wechat_file and wechat_file.exists():
-                try:
-                    with open(wechat_file, "r", encoding="utf-8") as f:
-                        wechat_md = f.read()
-                    html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
-                    html_content = markdown_to_wechat_html(wechat_md)
-                    with open(html_file, "w", encoding="utf-8") as f:
-                        f.write(f"""<!DOCTYPE html>
-<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><title>微信公众号日报 {date_str}</title></head>
-<body>{html_content}</body></html>""")
-                    print(f"  微信公众号 HTML 预览已生成（未配置 WECHAT_APP_ID，跳过发布草稿）: {html_file}")
-                except Exception as e:
-                    print(f"  HTML 预览生成失败: {e}")
+            print(f"  HTML 预览生成失败: {e}")
+
+        # 如果配置了微信凭证，尝试自动发布草稿
+        if Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET:
+            try:
+                publisher = WeChatPublisher()
+
+                # 找封面图
+                cover_candidates = list(Config.OUTPUT_DIR.glob(f"{date_str}-wechat-cover.*"))
+                cover_path = cover_candidates[0] if cover_candidates else None
+
+                draft_media_id = publisher.publish_to_draft(
+                    markdown_content=wechat_md,
+                    date_str=date_str,
+                    output_dir=Config.OUTPUT_DIR,
+                    cover_image_path=cover_path,
+                )
+
+                if draft_media_id:
+                    print(f"  微信公众号草稿发布成功: media_id={draft_media_id}")
+                else:
+                    print("  微信公众号草稿发布失败，可使用 HTML 预览文件手动发布")
+            except ValueError as e:
+                print(f"  微信草稿发布跳过（{e}）")
+            except Exception as e:
+                print(f"  微信草稿发布失败（可使用 HTML 预览手动发布）: {e}")
         else:
-            print("  微信公众号文章不存在，跳过草稿发布")
+            print("  未配置 WECHAT_APP_ID/WECHAT_APP_SECRET，跳过草稿自动发布")
+    else:
+        print("  微信公众号文章不存在，跳过草稿发布")
 
     print("=" * 50)
 
