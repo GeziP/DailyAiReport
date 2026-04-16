@@ -7,7 +7,7 @@
 - 🤖 AI 智能总结（详细完整，关键字加粗，不缩略）
 - 📝 自动生成小红书、微信公众号风格文章
 - 🔄 推荐来源自动加入追踪列表
-- 🖼️ AI 生成封面配图
+- 🔖️ AI 生成封面配图（微信公众号文章内容配图）
 - ⏰ GitHub Actions 定时自动运行
 
 ---
@@ -252,8 +252,9 @@ Actions 运行完成后，下载 Artifact 查看生成的日报文件。
 | `YYYY-MM-DD-xiaohongshu.md` | 小红书风格（详细完整，不缩略） |
 | `YYYY-MM-DD-wechat.md` | 微信公众号风格（详细完整，不缩略） |
 
-**封面图（需配置图片 API）：**
+**图片（需配置图片 API）：**
 - `*-cover.png` - 各平台封面图
+- `*-wechat-section-NN-*.png` - 微信公众号文章各章节配图（按章节主题自动生成）
 
 ---
 
@@ -268,6 +269,7 @@ DailyAiReport/
 │   ├── ai_summarizer.py     # AI 总结（详细完整，关键字加粗）
 │   ├── article_generator.py # 文章生成（不缩略，只调格式）
 │   ├── image_generator.py   # 封面图生成
+│   ├── wechat_image_inserter.py # 微信公众号日报章节配图
 │   ├── builders_digest.py   # Builders 动态
 │   ├── recommender.py       # 智能推荐
 │   └── main.py              # 主程序

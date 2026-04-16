@@ -20,6 +20,7 @@ from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
 from .image_generator import ImageGenerator
+from .wechat_image_inserter import WeChatImageInserter
 from .builders_digest import generate_builders_digest
 from .email_sender import send_daily_summary
 from .recommender import generate_recommendations, RecommendedSource
@@ -454,6 +455,29 @@ def main():
             content = f.read()
         with open(wechat_file, "w", encoding="utf-8") as f:
             f.write(f"![微信公众号封面](./{wechat_cover.name})\n\n{content}")
+
+    # ========== 5b. 为微信公众号日报各章节配图 ==========
+    print("\n" + "=" * 50)
+    print("微信公众号日报章节配图")
+    print("=" * 50)
+
+    if wechat_file and wechat_file.exists():
+        try:
+            wechat_inserter = WeChatImageInserter()
+            with open(wechat_file, "r", encoding="utf-8") as f:
+                wechat_md = f.read()
+
+            enriched_wechat = wechat_inserter.process_wechat_article(
+                wechat_md, date_str, Config.OUTPUT_DIR
+            )
+
+            with open(wechat_file, "w", encoding="utf-8") as f:
+                f.write(enriched_wechat)
+            print(f"  微信公众号配图完成: {wechat_file}")
+        except Exception as e:
+            print(f"  微信公众号配图失败（不影响其他输出）: {e}")
+    else:
+        print("  微信公众号文章不存在，跳过配图")
 
     print("=" * 50)
 
