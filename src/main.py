@@ -20,8 +20,6 @@ from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
 from .article_generator import ArticleGenerator
 from .image_generator import ImageGenerator
-from .wechat_image_inserter import WeChatImageInserter
-from .wechat_publisher import WeChatPublisher, markdown_to_wechat_html
 from .builders_digest import generate_builders_digest
 from .email_sender import send_daily_summary
 from .recommender import generate_recommendations, RecommendedSource
@@ -457,91 +455,6 @@ def main():
         with open(wechat_file, "w", encoding="utf-8") as f:
             f.write(f"![微信公众号封面](./{wechat_cover.name})\n\n{content}")
 
-    # ========== 5b. 为微信公众号日报各章节配图 ==========
-    print("\n" + "=" * 50)
-    print("微信公众号日报章节配图")
-    print("=" * 50)
-
-    if wechat_file and wechat_file.exists():
-        try:
-            wechat_inserter = WeChatImageInserter()
-            with open(wechat_file, "r", encoding="utf-8") as f:
-                wechat_md = f.read()
-
-            enriched_wechat = wechat_inserter.process_wechat_article(
-                wechat_md, date_str, Config.OUTPUT_DIR
-            )
-
-            with open(wechat_file, "w", encoding="utf-8") as f:
-                f.write(enriched_wechat)
-            print(f"  微信公众号配图完成: {wechat_file}")
-        except ValueError as e:
-            # 通常是 MANUS_API_KEY 未配置
-            print(f"  微信公众号配图跳过（{e}）")
-            print("  请在 GitHub Secrets 中配置 MANUS_API_KEY")
-        except Exception as e:
-            print(f"  微信公众号配图失败（不影响其他输出）: {e}")
-    else:
-        print("  微信公众号文章不存在，跳过配图")
-
-    print("=" * 50)
-
-    # ========== 5c. 将微信公众号日报发布为草稿 ==========
-    print("\n" + "=" * 50)
-    print("微信公众号草稿发布")
-    print("=" * 50)
-
-    if wechat_file and wechat_file.exists():
-        with open(wechat_file, "r", encoding="utf-8") as f:
-            wechat_md = f.read()
-
-        # 无论是否发布草稿，先生成 HTML 预览（可直接复制到公众号编辑器）
-        html_file = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
-        try:
-            html_content = markdown_to_wechat_html(wechat_md)
-            with open(html_file, "w", encoding="utf-8") as f:
-                f.write(f"""<!DOCTYPE html>
-<html lang=\"zh-CN\"><head><meta charset=\"utf-8\">
-<title>微信公众号日报 {date_str}</title>
-<style>body{{margin:0;padding:20px;background:#f5f5f5;}} .preview-tip{{background:#fff3cd;border:1px solid #ffc107;padding:12px 16px;border-radius:4px;margin-bottom:20px;font-size:14px;color:#856404;}}</style>
-</head>
-<body>
-<div class=\"preview-tip\">⚠️ 这是微信公众号文章预览。如需手动发布，请在公众号后台编辑器中粘贴以下 HTML 内容。</div>
-{html_content}
-</body></html>""")
-            print(f"  微信公众号 HTML 预览已生成: {html_file}")
-        except Exception as e:
-            print(f"  HTML 预览生成失败: {e}")
-
-        # 如果配置了微信凭证，尝试自动发布草稿
-        if Config.WECHAT_APP_ID and Config.WECHAT_APP_SECRET:
-            try:
-                publisher = WeChatPublisher()
-
-                # 找封面图
-                cover_candidates = list(Config.OUTPUT_DIR.glob(f"{date_str}-wechat-cover.*"))
-                cover_path = cover_candidates[0] if cover_candidates else None
-
-                draft_media_id = publisher.publish_to_draft(
-                    markdown_content=wechat_md,
-                    date_str=date_str,
-                    output_dir=Config.OUTPUT_DIR,
-                    cover_image_path=cover_path,
-                )
-
-                if draft_media_id:
-                    print(f"  微信公众号草稿发布成功: media_id={draft_media_id}")
-                else:
-                    print("  微信公众号草稿发布失败，可使用 HTML 预览文件手动发布")
-            except ValueError as e:
-                print(f"  微信草稿发布跳过（{e}）")
-            except Exception as e:
-                print(f"  微信草稿发布失败（可使用 HTML 预览手动发布）: {e}")
-        else:
-            print("  未配置 WECHAT_APP_ID/WECHAT_APP_SECRET，跳过草稿自动发布")
-    else:
-        print("  微信公众号文章不存在，跳过草稿发布")
-
     print("=" * 50)
 
     # ========== 6. 发送邮件推送 ==========
@@ -557,10 +470,6 @@ def main():
             attachments.append(xhs_file)
         if wechat_file and wechat_file.exists():
             attachments.append(wechat_file)
-        # 附上微信公众号 HTML 预览文件（如果存在）
-        html_preview = Config.OUTPUT_DIR / f"{date_str}-wechat.html"
-        if html_preview.exists():
-            attachments.append(html_preview)
 
         send_daily_summary(
             date_str=date_str,

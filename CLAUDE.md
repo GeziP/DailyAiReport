@@ -17,7 +17,7 @@ cp .env.example .env
 
 ## Architecture
 
-数据流水线架构：邮件获取 → 内容解析 → AI 总结 → 多平台文章生成 → 封面图生成 → 微信公众号章节配图
+数据流水线架构：邮件获取 → 内容解析 → AI 总结 → 多平台文章生成 → 封面图生成
 
 ```
 src/
@@ -27,7 +27,6 @@ src/
 ├── ai_summarizer.py    # AI API 封装（OpenAI 兼容接口）
 ├── article_generator.py# 多平台文章生成（小红书、微信公众号）
 ├── image_generator.py  # 封面图生成（DALL-E 等）
-├── wechat_image_inserter.py # 微信公众号日报章节配图（按章节主题生成配图并插入 Markdown）
 └── main.py             # 主程序入口，串联所有模块
 ```
 
