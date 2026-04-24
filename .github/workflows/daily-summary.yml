@@ -2,8 +2,8 @@ name: Daily AI Newsletter Summary
 
 on:
   schedule:
-    # UTC 23:00 = 北京时间早上 7:00
-    - cron: '0 23 * * *'
+    # UTC 08:00 = 北京时间下午 16:00
+    - cron: '0 8 * * *'
   workflow_dispatch:  # 支持手动触发
 
 permissions:
