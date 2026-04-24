@@ -347,7 +347,7 @@ def main():
     # 确保输出目录存在
     Config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 使用北京时间作为日报日期（Actions 在 UTC 23:00 触发 = 北京 07:00）
+    # 使用北京时间作为日报日期（Actions 在 UTC 08:00 触发 = 北京 16:00）
     beijing_tz = timezone(timedelta(hours=8))
     today = datetime.now(beijing_tz)
     date_str = today.strftime("%Y-%m-%d")
