@@ -173,6 +173,12 @@ def fetch_newsletter_summaries(
     since_date = datetime.now(timezone.utc) - timedelta(hours=24)
     print(f"搜索时间范围: {since_date.strftime('%Y-%m-%d %H:%M')} UTC 至今")
 
+    # IMAP SINCE/BEFORE 只支持日期级别（不含时间），为避免边界丢失邮件，
+    # 搜索范围额外往前推 1 天，精确过滤由 Python 完成
+    imap_since = since_date - timedelta(days=1)
+    imap_before = datetime.now(timezone.utc) + timedelta(days=1)
+    print(f"IMAP 搜索范围: {imap_since.strftime('%Y-%m-%d')} ~ {imap_before.strftime('%Y-%m-%d')}")
+
     with EmailClient() as client:
         if not client.connection:
             print("错误: 无法连接到邮件服务器")
@@ -183,7 +189,12 @@ def fetch_newsletter_summaries(
             name = nl["name"]
             print(f"  检查: {name} ({sender})")
 
-            emails = client.fetch_emails_by_sender(sender)
+            # 传入宽松的 IMAP 搜索范围，精确过滤在下面的 Python 代码中完成
+            emails = client.fetch_emails_by_sender(
+                sender,
+                since_date=imap_since,
+                before_date=imap_before
+            )
 
             new_emails = [
                 e for e in emails
@@ -314,7 +325,8 @@ def build_unified_report(
         for i, link in enumerate(all_links, 1):
             parts.append(f"\n[{i}] {link['title']}\n{link['url']}\n")
 
-    parts.append(f"\n---\n*生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+    beijing_tz = timezone(timedelta(hours=8))
+    parts.append(f"\n---\n*生成时间: {datetime.now(beijing_tz).strftime('%Y-%m-%d %H:%M:%S')} (北京时间)*")
 
     return "".join(parts), all_links
 
@@ -335,7 +347,9 @@ def main():
     # 确保输出目录存在
     Config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    today = datetime.now()
+    # 使用北京时间作为日报日期（Actions 在 UTC 23:00 触发 = 北京 07:00）
+    beijing_tz = timezone(timedelta(hours=8))
+    today = datetime.now(beijing_tz)
     date_str = today.strftime("%Y-%m-%d")
 
     # ========== 1. 并行获取 Newsletter 和 Builders Digest ==========

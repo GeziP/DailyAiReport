@@ -4,7 +4,7 @@ import imaplib
 import email
 from email.header import decode_header
 from email.message import Message
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from dataclasses import dataclass
 
@@ -193,8 +193,11 @@ class EmailClient:
                 date_header = msg.get("Date", "")
                 try:
                     parsed_date = email.utils.parsedate_to_datetime(date_header)
-                except:
-                    parsed_date = datetime.now()
+                    # 确保日期是 timezone-aware 的
+                    if parsed_date.tzinfo is None:
+                        parsed_date = parsed_date.replace(tzinfo=timezone.utc)
+                except Exception:
+                    parsed_date = datetime.now(timezone.utc)
 
                 # 获取正文
                 body_text, body_html = self._get_email_body(msg)
