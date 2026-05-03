@@ -75,7 +75,6 @@ src/
 - Newsletter 源：`config/newsletters.yaml`，YAML 格式，支持 enabled 开关
 - Builders 源：`config/follow-builders-sources.json`，自定义追踪的 X 账号和播客
 - 推荐追踪列表：`config/watchlist.yaml`，推荐来源自动写入
-- 输出模板：`templates/summary.md.j2`、`templates/unified_report.md.j2`（Jinja2）
 - 输出目录：`output/YYYY-MM-DD.md`
 
 ## GitHub Actions

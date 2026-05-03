@@ -10,7 +10,6 @@ from typing import Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
-from jinja2 import Environment, FileSystemLoader
 from openai import OpenAI
 import httpx
 
@@ -18,7 +17,7 @@ from .config import Config
 from .email_client import EmailClient
 from .newsletter_parser import NewsletterParser
 from .ai_summarizer import AISummarizer
-from .article_generator import ArticleGenerator
+from .article_generator import ArticleGenerator, strip_markdown
 from .image_generator import ImageGenerator
 from .builders_digest import generate_builders_digest
 from .email_sender import send_daily_summary
@@ -121,8 +120,8 @@ def merge_newsletter_summaries(summaries: list[dict]) -> Optional[str]:
         return None
 
     # 合并所有总结内容
-    combined_content = "\n\n---\n\n".join([
-        f"## {s['name']}\n\n{s.get('summary', '（无内容）')}"
+    combined_content = "\n\n".join([
+        f"{s['name']}\n\n{s.get('summary', '（无内容）')}"
         for s in summaries
     ])
 
@@ -238,6 +237,7 @@ def fetch_newsletter_summaries(
     print("\n正在解析和总结邮件...")
     summarizer = AISummarizer()
     summaries = []
+    seen_link_urls: set[str] = set()
 
     for sender, data in all_emails.items():
         name = data["name"]
@@ -266,9 +266,24 @@ def fetch_newsletter_summaries(
                 "summary": summary or "（总结生成失败）",
                 "links": email_links
             })
-            all_links.extend(email_links)
+            for link in email_links:
+                if link["url"] not in seen_link_urls:
+                    seen_link_urls.add(link["url"])
+                    all_links.append(link)
 
     return summaries, all_links
+
+
+def _dedup_links(links: list[dict]) -> list[dict]:
+    """按 URL 去重，保留首次出现的条目"""
+    seen = set()
+    result = []
+    for link in links:
+        url = link.get("url", "")
+        if url and url not in seen:
+            seen.add(url)
+            result.append(link)
+    return result
 
 
 def build_unified_report(
@@ -291,7 +306,7 @@ def build_unified_report(
         (unified_content, all_links)
     """
     parts = []
-    all_links = newsletter_links.copy()
+    all_links = _dedup_links(newsletter_links)
 
     # 今日概览
     overview_parts = []
@@ -426,7 +441,7 @@ def main():
             print("整合失败，使用原始分来源格式")
             # 回退：使用原始分来源格式
             merged_newsletter = "\n\n".join([
-                f"### {s['name']}\n{s.get('summary', '（无内容）')}"
+                f"{s['name']}\n{s.get('summary', '（无内容）')}"
                 for s in newsletter_summaries
             ])
     print("\n" + "=" * 50)
@@ -463,7 +478,8 @@ def main():
     article_gen = ArticleGenerator()
 
     # 生成小红书文章
-    xhs_content = article_gen.generate_unified_xiaohongshu(unified_content)
+    plain_content = strip_markdown(unified_content)
+    xhs_content = article_gen.generate_unified_xiaohongshu(plain_content)
     xhs_file = None
     article_title = f"{date_str} AI 日报"
 
@@ -474,7 +490,7 @@ def main():
         print(f"  小红书文章: {xhs_file}")
 
     # 生成微信公众号文章
-    wechat_content = article_gen.generate_unified_wechat(unified_content)
+    wechat_content = article_gen.generate_unified_wechat(plain_content)
     wechat_file = None
 
     if wechat_content:

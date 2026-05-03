@@ -280,9 +280,6 @@ DailyAiReport/
 │   ├── newsletters.yaml         # Newsletter 订阅配置
 │   ├── follow-builders-sources.json  # 自定义 Builders 配置
 │   └── watchlist.yaml           # 推荐来源追踪列表
-├── templates/                   # Jinja2 模板
-│   ├── summary.md.j2            # 日报模板
-│   └── unified_report.md.j2     # 统一报告模板
 ├── output/                      # 输出目录
 ├── .github/workflows/           # GitHub Actions 工作流
 │   └── daily-summary.yml        # 定时任务（北京 16:00）

@@ -235,6 +235,9 @@ def strip_markdown(text: str) -> str:
     # 移除行内代码标记 `text`
     text = re.sub(r'`([^`]+?)`', r'\1', text)
 
+    # 移除无序列表标记 - 或 *
+    text = re.sub(r'^[-*]\s+', '', text, flags=re.MULTILINE)
+
     # 清理多余空行（连续3个以上空行压缩为2个）
     text = re.sub(r'\n{4,}', '\n\n\n', text)
 
@@ -372,10 +375,10 @@ class ArticleGenerator:
         if not summaries:
             return None
 
-        parts = [f"# {date_str} AI Newsletter 每日资讯\n"]
+        parts = [f"{date_str} AI Newsletter 每日资讯\n"]
 
         for summary in summaries:
-            parts.append(f"\n## {summary['name']}\n")
+            parts.append(f"\n{summary['name']}\n")
             parts.append(summary.get('summary', '（无内容）'))
 
             # 添加链接
@@ -383,7 +386,7 @@ class ArticleGenerator:
             if links:
                 parts.append("\n相关链接：\n")
                 for link in links:  # 不限制链接数量
-                    parts.append(f"- {link['title']}: {link['url']}\n")
+                    parts.append(f"{link['title']}: {link['url']}\n")
 
         return "".join(parts)
 
