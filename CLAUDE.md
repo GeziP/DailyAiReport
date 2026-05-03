@@ -37,11 +37,11 @@ src/
 ├── email_sender.py          # SMTP 邮件推送
 ├── newsletter_parser.py     # HTML 解析，提取正文和链接
 ├── ai_summarizer.py         # AI 总结（深入展开，关键字加粗，OpenAI 兼容接口）
-├── article_generator.py     # 多平台文章生成（小红书、微信公众号）
+├── article_generator.py     # 多平台文章生成（小红书、微信公众号），含 strip_markdown 格式清洗
 ├── image_generator.py       # 封面图生成（DALL-E 等，可选）
 ├── builders_digest.py       # AI Builders 动态（调用 follow-builders 获取推文和播客）
 ├── recommender.py           # 智能推荐新来源，自动加入 watchlist
-└── main.py                  # 主程序入口，并行获取数据 → 整合 → 生成 → 推送
+└── main.py                  # 主程序入口，并行获取数据 → 整合（URL 去重 + Markdown 清洗）→ 生成 → 推送
 ```
 
 ## 配置

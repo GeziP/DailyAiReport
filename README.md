@@ -4,8 +4,9 @@
 
 **核心功能：**
 - 多信息源融合（Newsletter 邮件 + AI Builders 动态 + 优质来源推荐）
-- AI 智能总结（深入展开，关键字加粗，不缩略）
-- 自动生成小红书、微信公众号风格文章
+- AI 智能总结（深入展开，不缩略，纯文本输出适配公众号）
+- 自动生成小红书、微信公众号风格文章（自动清除 Markdown 格式）
+- 参考链接自动去重，避免重复编号
 - 推荐来源自动加入追踪列表
 - AI 生成封面配图（可选）
 - GitHub Actions 每天北京时间 16:00 自动运行
@@ -30,7 +31,7 @@
 （话题关键词、涉及的主要来源）
 
 ## 一、AI Newsletter 精选
-（多个 Newsletter 按主题整合，深入展开，关键字加粗）
+（多个 Newsletter 按主题整合，深入展开，纯文本格式）
 
 ## 二、AI Builders 动态
 （X/Twitter 推文 + 播客摘要，深入展开）
@@ -44,8 +45,9 @@
 
 **特点：**
 - 深入展开每个话题，补充背景和技术解读
-- 关键字加粗（人名、公司、数据、概念）
-- 分段分行清晰
+- 纯文本格式，适配微信公众号等平台直接发布
+- 分段分行清晰，用「」标注关键术语
+- 参考链接自动去重
 - 推荐来源自动加入追踪列表
 
 ---
@@ -271,11 +273,11 @@ DailyAiReport/
 │   ├── email_sender.py          # SMTP 邮件推送
 │   ├── newsletter_parser.py     # Newsletter 内容解析
 │   ├── ai_summarizer.py         # AI 总结（深入展开，关键字加粗）
-│   ├── article_generator.py     # 多平台文章生成（小红书、微信公众号）
+│   ├── article_generator.py     # 多平台文章生成（小红书、微信公众号），含 Markdown 格式清洗
 │   ├── image_generator.py       # 封面图生成（DALL-E 等）
 │   ├── builders_digest.py       # AI Builders 动态（推文 + 播客）
 │   ├── recommender.py           # 智能推荐新来源
-│   └── main.py                  # 主程序入口
+│   └── main.py                  # 主程序入口（含 URL 去重、Markdown 清洗）
 ├── config/                      # 配置文件
 │   ├── newsletters.yaml         # Newsletter 订阅配置
 │   ├── follow-builders-sources.json  # 自定义 Builders 配置
