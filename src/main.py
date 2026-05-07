@@ -275,14 +275,30 @@ def fetch_newsletter_summaries(
 
 
 def _dedup_links(links: list[dict]) -> list[dict]:
-    """按 URL 去重，保留首次出现的条目"""
+    """按 URL 去重，过滤掉 substack redirect 等无意义长链接"""
     seen = set()
     result = []
+    skip_prefixes = [
+        "https://substack.com/redirect/",
+        "https://substack.com/app-link/",
+        "https://open.substack.com/pub/",
+    ]
+    skip_keywords = ["utm_source=", "utm_campaign=", "token=", "READ IN APP"]
     for link in links:
         url = link.get("url", "")
-        if url and url not in seen:
-            seen.add(url)
-            result.append(link)
+        title = link.get("title", "")
+        if not url or url in seen:
+            continue
+        # 跳过 substack redirect 和跟踪链接
+        if any(url.startswith(p) for p in skip_prefixes):
+            continue
+        if any(kw in url for kw in skip_keywords):
+            continue
+        # 跳过纯订阅链接
+        if "subscribe" in title.lower() and "substack" in url.lower():
+            continue
+        seen.add(url)
+        result.append(link)
     return result
 
 
@@ -313,55 +329,49 @@ def build_unified_report(
     if merged_newsletter:
         overview_parts.append("AI Newsletter 精选")
     if builders_digest:
-        overview_parts.append("**AI Builders 动态**")
+        overview_parts.append("AI Builders 动态")
     if recommendations:
-        overview_parts.append(f"发现 **{len(recommendations)} 个新优质来源**")
+        overview_parts.append(f"发现 {len(recommendations)} 个新优质来源")
 
     if overview_parts:
         overview = "、".join(overview_parts)
-        parts.append(f"## 今日概览\n\n{overview}")
+        parts.append(f"今日概览\n\n{overview}\n")
 
     # Newsletter 精选（已按主题整合）
     if merged_newsletter:
-        parts.append("\n## 一、AI Newsletter 精选\n")
+        parts.append("\n\n一、AI Newsletter 精选\n\n")
         parts.append(merged_newsletter)
-
-        # 链接单独处理
-        if newsletter_links:
-            parts.append("\n### Newsletter 链接汇总\n")
-            for link in newsletter_links[:20]:  # 限制链接数量避免太长
-                parts.append(f"- {link['title']}: {link['url']}\n")
 
     # Builders 动态
     if builders_digest:
-        parts.append("\n## 二、AI Builders 动态\n")
+        parts.append("\n\n二、AI Builders 动态\n\n")
         parts.append(builders_digest)
 
     # 推荐内容
     if recommendations:
-        parts.append("\n## 三、新发现的优质来源\n")
+        parts.append("\n\n三、新发现的优质来源\n\n")
 
         builders = [r for r in recommendations if r.type == "builder"]
         podcasts = [r for r in recommendations if r.type == "podcast"]
 
         if builders:
-            parts.append("### 推荐关注的 Builder\n")
+            parts.append("推荐关注的 Builder\n\n")
             for rec in builders:
-                parts.append(f"- **{rec.name}** ({rec.platform}): {rec.reason}\n")
+                parts.append(f"  {rec.name}（{rec.platform}）：{rec.reason}\n")
 
         if podcasts:
-            parts.append("\n### 推荐订阅的播客\n")
+            parts.append("\n推荐订阅的播客\n\n")
             for rec in podcasts:
-                parts.append(f"- **{rec.name}** ({rec.platform}): {rec.reason}\n")
+                parts.append(f"  {rec.name}（{rec.platform}）：{rec.reason}\n")
 
-    # 参考来源
+    # 参考来源（过滤后）
     if all_links:
-        parts.append("\n## 参考来源\n")
+        parts.append("\n\n参考来源\n\n")
         for i, link in enumerate(all_links, 1):
-            parts.append(f"\n[{i}] {link['title']}\n{link['url']}\n")
+            parts.append(f"[{i}] {link['title']}\n    {link['url']}\n\n")
 
     beijing_tz = timezone(timedelta(hours=8))
-    parts.append(f"\n---\n*生成时间: {datetime.now(beijing_tz).strftime('%Y-%m-%d %H:%M:%S')} (北京时间)*")
+    parts.append(f"\n生成时间: {datetime.now(beijing_tz).strftime('%Y-%m-%d %H:%M:%S')} (北京时间)")
 
     return "".join(parts), all_links
 
@@ -470,7 +480,7 @@ def main():
     # 保存统一日报
     output_file = Config.OUTPUT_DIR / f"{date_str}.md"
     with open(output_file, "w", encoding="utf-8") as f:
-        f.write(f"# AI 日报 - {date_str}\n\n{unified_content}")
+        f.write(f"AI 日报 - {date_str}\n\n{unified_content}")
     print(f"统一日报: {output_file}")
 
     # ========== 4. 生成多平台文章 ==========
